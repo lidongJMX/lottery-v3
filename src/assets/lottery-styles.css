@@ -1,0 +1,76 @@
+/* 抽奖区域样式 */
+.lottery-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  position: relative;
+  padding: 0 20px;
+}
+
+.award-selector {
+  position: absolute;
+  top: 0;
+  right: 20px;
+  width: 250px;
+  text-align: right;
+  z-index: 10;
+}
+
+.award-select {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.award-desc {
+  font-size: 1.2rem;
+  color: #666;
+  margin: 0;
+  text-align: center;
+}
+
+.lottery-animation {
+  width: 100%;
+  height: 400px; /* 进一步增加高度 */
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 30px 0 90px; /* 调整上下边距，上边距减少，下边距增加 */
+  overflow: hidden;
+  position: relative;
+}
+
+.rolling-name {
+  font-size: 6rem; /* 进一步增加字体大小 */
+  font-weight: bold;
+  color: #ffffff9c;
+  text-align: center;
+  transition: transform 0.3s ease, color 0.3s ease;
+  padding: 20px;
+}
+
+.rolling-name.winner-highlight {
+  color: var(--primary-color);
+  animation: winner-pulse 2s infinite;
+  text-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.5);
+}
+
+.lottery-controls {
+  width: 100%;
+  margin-top: 80px; /* 进一步增加与抽奖动画的距离 */
+}
+
+.control-row {
+  display: flex;
+  justify-content: center;
+  gap: 40px; /* 增加按钮间距 */
+}
+
+.start-btn,
+.stop-btn {
+  width: 200px; /* 增加按钮宽度 */
+  height: 70px; /* 增加按钮高度 */
+  font-size: 1.5rem; /* 增加字体大小 */
+  border: none;
+  border-radius: 5px;
+}
