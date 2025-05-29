@@ -159,6 +159,15 @@
                       <span class="winner-award" :style="{ color: winner.color, backgroundColor: winner.color + '20' }">
                         {{ winner.award_name }}
                       </span>
+                      <el-button 
+                        type="danger" 
+                        size="small" 
+                        circle 
+                        @click.stop="deleteWinner(winner)" 
+                        class="delete-winner-btn"
+                        title="删除中奖记录">
+                        <el-icon><Delete /></el-icon>
+                      </el-button>
                     </div>
                   </div>
                 </div>
@@ -328,6 +337,69 @@ const loadWinners = () => {
       ElMessage.error('获取中奖名单失败，请稍后重试')
     })
 }
+
+// 删除中奖者
+const deleteWinner = async (winner) => {
+  try {
+    // 显示确认对话框
+    await ElMessageBox.confirm(
+      `确定要删除 ${winner.name} 的 ${winner.award_name} 中奖记录吗？此操作将恢复该参与者状态并增加奖项剩余数量。`,
+      '删除确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+    console.log('确认删除', winner)
+    // 用户确认后，调用删除API
+    const response = await fetch(`/api/winners/${winner.user_code}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (!response.ok) throw new Error('删除失败')
+
+    // 删除成功后刷新数据
+    ElMessage.success('删除成功')
+    
+    // 重新加载中奖者列表
+    loadWinners()
+    // 重新加载奖项列表
+    loadawards()
+    // 重新加载参与者列表
+    loadParticipants()
+  } catch (error) {
+    console.error('删除中奖记录失败:', error)
+    ElMessage.error('删除失败，请稍后重试')
+  }
+}
+
+// 加载参与者列表
+// const loadParticipants = () => {
+//   isLoadingParticipants.value = true
+//   loadError.value = false
+  
+//   // 获取抽奖名单
+//   fetch('/api/participants/lottery')
+//     .then(res => {
+//       if (!res.ok) throw new Error('获取抽奖名单失败')
+//       return res.json()
+//     })
+//     .then(lotteryData => {
+//       participants.value = lotteryData
+//       availableParticipants.value = lotteryData
+//       isLoadingParticipants.value = false
+//       console.log('成功获取抽奖名单:', lotteryData)
+//     })
+//     .catch(error => {
+//       console.error('获取抽奖名单错误:', error)
+//       loadError.value = true
+//       isLoadingParticipants.value = false
+//     })
+// }
 
 // 初始加载
 onMounted(() => {
@@ -1152,10 +1224,15 @@ const loadParticipants = () => {
             margin-bottom: 8px;
             border-radius: 5px;
             transition: all 0.3s ease;
+            position: relative;
 
             &:hover {
               transform: translateX(5px);
               box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+              .delete-winner-btn {
+                opacity: 1;
+              }
             }
 
             .winner-name {
@@ -1169,6 +1246,15 @@ const loadParticipants = () => {
               font-weight: bold;
               padding: 5px 10px;
               border-radius: 15px;
+            }
+
+            .delete-winner-btn {
+              opacity: 0;
+              transition: opacity 0.3s ease;
+              position: absolute;
+              right: 5px;
+              top: 50%;
+              transform: translateY(-50%);
             }
           }
         }
