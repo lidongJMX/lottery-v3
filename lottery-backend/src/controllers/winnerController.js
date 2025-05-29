@@ -31,33 +31,51 @@ const winnerController = {
 
   delete: async (req, res) => {
     try {
-      const winner = await Winner.findByPk(req.params.id, {
+      console.log('删除请求参数:', req.params);
+      console.log('查询user_code:', req.params.id, '类型:', typeof req.params.id);
+      
+      // 根据participant的user_code查找中奖记录
+      const winner = await Winner.findOne({
         include: [
-          { model: Participant },
+          { 
+            model: Participant, 
+            where: { user_code: req.params.id }
+          },
           { model: Award }
         ]
       });
-
+      console.log('根据user_code查询结果:', winner);
+      
       if (!winner) {
         return res.status(404).json({ message: '中奖记录不存在' });
       }
 
-      // 更新人员状态
-      await winner.Participant.update({
-        win_count: winner.Participant.win_count - 1,
-        has_won: winner.Participant.win_count - 1 > 0,
-        high_award_level: await Winner.max('level', {
-          where: { participant_id: winner.participant_id }
-        }) || 0
-      });
+      // 删除中奖记录
+      await winner.destroy();
 
+      // 更新人员状态（删除记录后重新计算）
+      console.log('要删除的人员中奖次数',winner.Participant.win_count);
+      const newWinCount = winner.Participant.win_count - 1;
+      
+      // 通过关联查询获取该参与者剩余中奖记录中的最高奖项等级
+      const maxAwardResult = await Winner.findOne({
+        where: { participant_id: winner.participant_id },
+        include: [{ model: Award, attributes: ['level'] }],
+        order: [[{ model: Award }, 'level', 'ASC']],
+        attributes: []
+      });
+      const newHighAwardLevel = maxAwardResult ? maxAwardResult.Award.level : 0;
+      console.log('要删除的人员最高奖项',newHighAwardLevel);
+      await winner.Participant.update({
+        win_count: newWinCount,
+        has_won: newWinCount > 0,
+        high_award_level: newHighAwardLevel
+      });
+      console.log('删除后人员最高奖项',newHighAwardLevel);
       // 更新奖项剩余数量
       await winner.Award.update({
         remaining_count: winner.Award.remaining_count + 1
       });
-
-      // 删除中奖记录
-      await winner.destroy();
 
       res.json({ message: '删除成功' });
     } catch (error) {
@@ -124,4 +142,4 @@ const winnerController = {
   }
 };
 
-module.exports = winnerController; 
+module.exports = winnerController;
