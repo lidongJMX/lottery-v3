@@ -34,6 +34,11 @@ const routes = [
     path: '/export',
     name: 'Export',
     component: () => import('@/views/Export.vue')
+  },
+  {
+    path: '/lotter-demo',
+    name: 'LotteryDemo',
+    component: () => import('@/components/AdvancedLotteryRoll.vue')
   }
 ]
 

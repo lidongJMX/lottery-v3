@@ -377,30 +377,6 @@ const deleteWinner = async (winner) => {
   }
 }
 
-// 加载参与者列表
-// const loadParticipants = () => {
-//   isLoadingParticipants.value = true
-//   loadError.value = false
-  
-//   // 获取抽奖名单
-//   fetch('/api/participants/lottery')
-//     .then(res => {
-//       if (!res.ok) throw new Error('获取抽奖名单失败')
-//       return res.json()
-//     })
-//     .then(lotteryData => {
-//       participants.value = lotteryData
-//       availableParticipants.value = lotteryData
-//       isLoadingParticipants.value = false
-//       console.log('成功获取抽奖名单:', lotteryData)
-//     })
-//     .catch(error => {
-//       console.error('获取抽奖名单错误:', error)
-//       loadError.value = true
-//       isLoadingParticipants.value = false
-//     })
-// }
-
 // 初始加载
 onMounted(() => {
   // 从localStorage加载背景图片设置

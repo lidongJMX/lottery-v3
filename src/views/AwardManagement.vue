@@ -7,13 +7,8 @@
           <el-button type="primary" @click="handleAdd">添加奖项</el-button>
         </div>
       </template>
-      
-      <el-table
-        v-loading="loading"
-        :data="awardList"
-        style="width: 100%"
-        border
-      >
+
+      <el-table v-loading="loading" :data="awardList" style="width: 100%" border>
         <el-table-column prop="name" label="奖项名称" width="180" />
         <el-table-column prop="description" label="奖项描述" />
         <el-table-column label="总数量" width="100">
@@ -40,52 +35,24 @@
     </el-card>
 
     <!-- 添加/编辑奖项对话框 -->
-    <el-dialog
-      :title="dialogTitle"
-      v-model="dialogVisible"
-      width="500px"
-    >
-      <el-form
-        ref="formRef"
-        :model="form"
-        :rules="rules"
-        label-width="100px"
-      >
+    <el-dialog :title="dialogTitle" v-model="dialogVisible" width="500px">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="奖项名称" prop="name">
           <el-input v-model="form.name" placeholder="请输入奖项名称" />
         </el-form-item>
         <el-form-item label="奖项描述" prop="description">
-          <el-input
-            v-model="form.description"
-            type="textarea"
-            placeholder="请输入奖项描述"
-          />
+          <el-input v-model="form.description" type="textarea" placeholder="请输入奖项描述" />
         </el-form-item>
         <el-form-item label="奖项数量" prop="count">
-          <el-input-number
-            v-model="form.count"
-            :min="1"
-            :max="1000"
-            placeholder="请输入奖项数量"
-          />
+          <el-input-number v-model="form.count" :min="1" :max="1000" placeholder="请输入奖项数量" />
         </el-form-item>
         <el-form-item label="奖项等级" prop="level">
           <el-select v-model="form.level" placeholder="请选择奖项等级">
-            <el-option
-              v-for="item in levelOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
+            <el-option v-for="item in levelOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="一次抽取人数" prop="draw_count">
-          <el-input-number
-            v-model="form.draw_count"
-            :min="1"
-            :max="20"
-            placeholder="请输入一次抽取人数"
-          />
+          <el-input-number v-model="form.draw_count" :min="1" :max="20" placeholder="请输入一次抽取人数" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -148,7 +115,7 @@ const fetchAwardList = async () => {
   loading.value = true
   try {
     console.log('开始获取奖项列表...')
-    
+
     // 尝试直接访问后端API
     console.log('尝试使用fetch API直接访问')
     try {
@@ -167,12 +134,12 @@ fetch('/api/awards')
     console.error('API请求失败:', error)
   })
       `)
-      
+
       const response = await fetch('/api/awards')
       console.log('fetch响应状态:', response.status)
       const data = await response.json()
       console.log('fetch API响应数据:', data)
-      
+
       if (Array.isArray(data) && data.length > 0) {
         awardList.value = data
         return
@@ -180,16 +147,16 @@ fetch('/api/awards')
     } catch (fetchError) {
       console.error('fetch API请求失败:', fetchError)
     }
-    
+
     // 方法1：使用API模块
     const res = await getAwardList()
     console.log('获取奖项列表响应:', res)
-    
+
     // 方法2：直接使用axios检查
     const axios = (await import('axios')).default
     const directRes = await axios.get('/api/awards')
     console.log('直接请求后端API响应:', directRes)
-    
+
     if (Array.isArray(res)) {
       awardList.value = res
       console.log('奖项列表数据设置成功:', awardList.value)
@@ -265,7 +232,7 @@ const handleDelete = async (row) => {
 // 提交表单
 const handleSubmit = async () => {
   if (!formRef.value) return
-  
+
   try {
     await formRef.value.validate()
     if (form.value.id) {
@@ -302,17 +269,17 @@ onMounted(() => {
 <style lang="scss" scoped>
 .award-management {
   padding: 20px;
-  
+
   .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
-  
+
   .el-table {
     margin-top: 20px;
   }
-  
+
   .dialog-footer {
     display: flex;
     justify-content: flex-end;

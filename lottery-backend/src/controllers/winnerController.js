@@ -33,19 +33,19 @@ const winnerController = {
     try {
       console.log('删除请求参数:', req.params);
       console.log('查询user_code:', req.params.id, '类型:', typeof req.params.id);
-      
+
       // 根据participant的user_code查找中奖记录
       const winner = await Winner.findOne({
         include: [
-          { 
-            model: Participant, 
+          {
+            model: Participant,
             where: { user_code: req.params.id }
           },
           { model: Award }
         ]
       });
       console.log('根据user_code查询结果:', winner);
-      
+
       if (!winner) {
         return res.status(404).json({ message: '中奖记录不存在' });
       }
@@ -54,9 +54,9 @@ const winnerController = {
       await winner.destroy();
 
       // 更新人员状态（删除记录后重新计算）
-      console.log('要删除的人员中奖次数',winner.Participant.win_count);
+      console.log('要删除的人员中奖次数', winner.Participant.win_count);
       const newWinCount = winner.Participant.win_count - 1;
-      
+
       // 通过关联查询获取该参与者剩余中奖记录中的最高奖项等级
       const maxAwardResult = await Winner.findOne({
         where: { participant_id: winner.participant_id },
@@ -65,13 +65,14 @@ const winnerController = {
         attributes: []
       });
       const newHighAwardLevel = maxAwardResult ? maxAwardResult.Award.level : 0;
-      console.log('要删除的人员最高奖项',newHighAwardLevel);
+      console.log('要删除的人员最高奖项', newHighAwardLevel);
+      
       await winner.Participant.update({
         win_count: newWinCount,
         has_won: newWinCount > 0,
         high_award_level: newHighAwardLevel
       });
-      console.log('删除后人员最高奖项',newHighAwardLevel);
+      console.log('删除后人员最高奖项', newHighAwardLevel);
       // 更新奖项剩余数量
       await winner.Award.update({
         remaining_count: winner.Award.remaining_count + 1
@@ -127,15 +128,15 @@ const winnerController = {
         'Content-Disposition',
         'attachment; filename=winners.xlsx'
       );
-      
+
       // 发送文件
       await workbook.xlsx.write(res);
       console.log('导出成功');
       res.end();
     } catch (error) {
       console.error('导出中奖名单错误:', error);
-      res.status(500).json({ 
-        success: false, 
+      res.status(500).json({
+        success: false,
         message: '导出失败：' + (error.message || '服务器错误')
       });
     }
