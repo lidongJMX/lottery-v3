@@ -205,7 +205,7 @@ const backgroundOptions = [
   { name: '背景2', path: '/src/assets/background-2.png' },
   { name: '背景3', path: '/src/assets/backgroud-3.png' },
   { name: '背景4', path: '/src/assets/background-4.png' },
-  { name: '背景4', path: '/src/assets/background-5.png' }
+  { name: '背景5', path: '/src/assets/background-5.png' }
 ]
 const currentBackground = ref(backgroundOptions[0].path)
 

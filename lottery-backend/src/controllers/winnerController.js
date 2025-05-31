@@ -45,7 +45,6 @@ const winnerController = {
         ]
       });
       console.log('根据user_code查询结果:', winner);
-
       if (!winner) {
         return res.status(404).json({ message: '中奖记录不存在' });
       }
