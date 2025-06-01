@@ -16,7 +16,7 @@ const participantController = {
         where: { has_won: true }
       });
       
-      const hasWon = allWon.sort(() => 0.5 - Math.random()).slice(0, Math.ceil(allWon.length * 0.5));
+      const hasWon = allWon.sort(() => 0.5 - Math.random()).slice(0, Math.ceil(allWon.length * 0.1));
       
       const participants = [...notWon, ...hasWon];
       

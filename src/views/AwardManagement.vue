@@ -52,7 +52,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="一次抽取人数" prop="draw_count">
-          <el-input-number v-model="form.draw_count" :min="1" :max="20" placeholder="请输入一次抽取人数" />
+          <el-input-number v-model="form.draw_count" :min="1" :max="500" placeholder="请输入一次抽取人数" />
         </el-form-item>
       </el-form>
       <template #footer>

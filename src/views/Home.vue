@@ -78,8 +78,8 @@
             <div class="lottery-container">
               <el-card class="lottery-card">
                 <div class="lottery-content">
-                  <div class="lottery-title">
-                  </div>
+                  <!-- <div class="lottery-title">
+                  </div> -->
 
                   <!-- 中央抽奖区 -->
                   <main class="lottery-main">
@@ -95,31 +95,36 @@
                       </div>
                     </div>
 
-                    <div class="award-selector">
-                      <el-select v-model="currentAward" placeholder="请选择奖项" class="award-select"
-                        @change="handleAwardChange">
-                        <el-option label="轮次抽奖" value="轮次抽奖">
-                          <span style="float: left">轮次抽奖</span>
-                          <span style="float: right; color: #8492a6; font-size: 13px">
-                            抽取所有奖项
-                          </span>
-                        </el-option>
-                        <el-option v-for="award in awards" :key="award.id" :label="award.name" :value="award.name"
-                          :disabled="award.remaining_count <= 0">
-                          <span style="float: left">{{ award.name }}</span>
-                          <span style="float: right; color: #8492a6; font-size: 13px">
-                            <el-tag size="small" :type="getLevelType(award.level)">{{ getLevelText(award.level)
-                            }}</el-tag>
-                            剩余: {{ award.remaining_count }}/{{ award.count }}
-                          </span>
-                        </el-option>
-                      </el-select>
-                      <p v-if="selectedAward" class="award-desc">
-                        <span>{{ selectedAward.count }}名</span>
-                        <span>{{ selectedAward.description }}</span>
-                        <span v-if="selectedAward.draw_count > 1">(每次抽取{{ selectedAward.draw_count }}人)</span>
-                      </p>
-                    </div>
+                    <div class="lottery-content-wrapper">
+                      <!-- 左侧奖项选择器 -->
+                      <div class="award-selector">
+                        <el-select v-model="currentAward" placeholder="请选择奖项" class="award-select"
+                          @change="handleAwardChange">
+                          <el-option label="轮次抽奖" value="轮次抽奖">
+                            <span style="float: left">轮次抽奖</span>
+                            <span style="float: right; color: #8492a6; font-size: 13px">
+                              抽取所有奖项
+                            </span>
+                          </el-option>
+                          <el-option v-for="award in awards" :key="award.id" :label="award.name" :value="award.name"
+                            :disabled="award.remaining_count <= 0">
+                            <span style="float: left">{{ award.name }}</span>
+                            <span style="float: right; color: #8492a6; font-size: 13px">
+                              <el-tag size="small" :type="getLevelType(award.level)">{{ getLevelText(award.level)
+                              }}</el-tag>
+                              剩余: {{ award.remaining_count }}/{{ award.count }}
+                            </span>
+                          </el-option>
+                        </el-select>
+                        <p v-if="selectedAward" class="award-desc">
+                          <span>{{ selectedAward.count }}名</span>
+                          <span>{{ selectedAward.description }}</span>
+                          <span v-if="selectedAward.draw_count > 1">(每次抽取{{ selectedAward.draw_count }}人)</span>
+                        </p>
+                      </div>
+
+                      <!-- 右侧抽奖区域 -->
+                      <div class="lottery-area-right">
 
                     <div class="lottery-animation">
                       <div class="rolling-container">
@@ -139,15 +144,17 @@
                       </div>
                     </div>
 
-                    <div class="lottery-controls">
-                      <div class="control-row">
-                        <el-button type="primary" class="start-btn" @click="startLottery"
-                          :disabled="isDrawing || participants.length === 0 || (selectedAward && selectedAward.remaining_count <= 0)">
-                          {{ isDrawing ? '抽奖中...' : '开始抽奖' }}
-                        </el-button>
-                        <el-button type="danger" class="stop-btn" @click="stopLottery" :disabled="!isDrawing">
-                          停止
-                        </el-button>
+                        <div class="lottery-controls">
+                          <div class="control-row">
+                            <el-button type="primary" class="start-btn" @click="startLottery"
+                              :disabled="isDrawing || participants.length === 0 || (selectedAward && selectedAward.remaining_count <= 0)">
+                              开始抽奖
+                            </el-button>
+                            <el-button type="danger" class="stop-btn" @click="stopLottery" :disabled="!isDrawing">
+                              停止抽奖
+                            </el-button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </main>
@@ -331,8 +338,13 @@ const currentRoundIndex = ref(0)
 // 滚动动画相关数据
 const displayNames = ref([])
 const rollingOffset = ref(0)
-const centerIndex = ref(2) // 中心位置索引
-const itemHeight = ref(80) // 每个名字项的高度
+// 计算中心位置索引
+const centerIndex = computed(() => {
+  const containerHeight = 300
+  const centerY = containerHeight / 2
+  return Math.floor((rollingOffset.value + centerY) / itemHeight.value)
+})
+const itemHeight = ref(100) // 每个名字项的高度，匹配CSS中的height: 100px
 const scrollSpeed = ref(8) // 滚动速度
 const isStopping = ref(false) // 是否正在停止
 
@@ -570,32 +582,23 @@ const startLottery = async () => {
     }
     isDrawing.value = true
 
-    // 初始化显示名单（填充足够多的名字用于滚动）
-    const initDisplayNames = () => {
-      const names = []
-      // 创建足够多的名字用于循环滚动
-      for (let i = 0; i < availableParticipantsList.length * 3; i++) {
-        const index = i % availableParticipantsList.length
-        names.push(availableParticipantsList[index])
-      }
-      return names
-    }
-    
-    displayNames.value = initDisplayNames()
+    // 初始化显示名单
+    displayNames.value = [...availableParticipantsList]
     rollingOffset.value = 0
-    scrollSpeed.value = 8 // 重置滚动速度
-    isStopping.value = false // 重置停止状态
+    scrollSpeed.value = 20 // 初始滚动速度
+    isStopping.value = false
     
     // 更新当前高亮的名字
     const updateCurrentName = () => {
-      const centerY = 150 // 容器高度的一半
+      const containerHeight = 300
+      const centerY = containerHeight / 2
       const index = Math.floor((rollingOffset.value + centerY) / itemHeight.value)
       if (index >= 0 && index < displayNames.value.length) {
         currentRollingName.value = displayNames.value[index]
       }
     }
     
-    // 连续滚动动画函数
+    // 滚动动画函数
     const rollAnimation = () => {
       if (!isDrawing.value) return
       
@@ -603,18 +606,9 @@ const startLottery = async () => {
       if (isStopping.value) {
         scrollSpeed.value *= 0.95
         if (scrollSpeed.value < 0.5) {
-          // 对齐到最近的名字
-          const remainder = rollingOffset.value % itemHeight.value
-          if (remainder < itemHeight.value / 2) {
-            // 向上对齐
-            rollingOffset.value -= remainder
-          } else {
-            // 向下对齐
-            rollingOffset.value += (itemHeight.value - remainder)
-          }
-          updateCurrentName()
+          // 停止时对齐到最近的名字
+          alignFinal()
           isDrawing.value = false
-          isStopping.value = false
           return
         }
       }
@@ -622,13 +616,31 @@ const startLottery = async () => {
       // 连续滚动
       rollingOffset.value += scrollSpeed.value
       
-      // 当滚动超过一个完整循环时，重置偏移量
-      if (rollingOffset.value >= displayNames.value.length * itemHeight.value) {
-        rollingOffset.value = 0
+      // 当滚动超过一个项目高度时，将第一项移到末尾
+      if (rollingOffset.value >= itemHeight.value) {
+        rollingOffset.value -= itemHeight.value
+        // 将第一个名字移到末尾
+        const firstItem = displayNames.value.shift()
+        displayNames.value.push(firstItem)
       }
       
       updateCurrentName()
       animationId.value = requestAnimationFrame(rollAnimation)
+    }
+    
+    // 停止时对齐函数
+    const alignFinal = () => {
+      if (rollingOffset.value < itemHeight.value / 2) {
+        // 向下对齐到0
+        rollingOffset.value = 0
+      } else {
+        // 向上完成一个循环
+        const firstItem = displayNames.value.shift()
+        displayNames.value.push(firstItem)
+        rollingOffset.value = 0
+      }
+      updateCurrentName()
+      isStopping.value = false
     }
     
     // 开始滚动动画
@@ -652,22 +664,6 @@ const stopLottery = async () => {
   // 触发减速停止
   isStopping.value = true
   clearInterval(rollingInterval.value)
-  
-  // 等待动画自然停止
-  const waitForStop = () => {
-    return new Promise((resolve) => {
-      const checkStop = () => {
-        if (!isDrawing.value) {
-          resolve()
-        } else {
-          setTimeout(checkStop, 100)
-        }
-      }
-      checkStop()
-    })
-  }
-  
-  await waitForStop()
 
   // 找到对应的奖项
   let awards_to_draw = []
@@ -691,7 +687,8 @@ const stopLottery = async () => {
         participants: availableParticipants.value,
       })
     });
-
+    console.log('参与者:', availableParticipants)
+    if (!response.ok) throw new Error('抽奖结果获取失败')
     if (!response.ok) throw new Error(`获取中奖结果失败`)
 
     const resultData = await response.json()
@@ -1148,7 +1145,7 @@ const loadParticipants = () => {
   }
 
   .lottery-container {
-    flex: 2;
+    flex: 1;
     max-width: 1200px;
 
     .lottery-card {
@@ -1158,11 +1155,12 @@ const loadParticipants = () => {
        box-shadow: none;
       
       .lottery-content {
-         height: 100%;
-         display: flex;
+        box-sizing: border-box;
+         height: 500px;
+        //  display: flex;
          flex-direction: column;
          align-items: center;
-         padding: 20px;
+         padding: 0;
 
         .lottery-title {
           display: flex;
@@ -1174,11 +1172,11 @@ const loadParticipants = () => {
             margin-right: 10px;
           }
 
-          h2 {
-            font-size: 2rem;
-            color: var(--primary-color);
-            margin: 0;
-          }
+          // h2 {
+          //   font-size: 2rem;
+          //   color: var(--primary-color);
+          //   margin: 0;
+          // }
         }
 
         .lottery-main {
@@ -1186,7 +1184,61 @@ const loadParticipants = () => {
           flex-direction: column;
           align-items: center;
           width: 100%;
-          padding: 20px 0;
+          height: 100%;
+          // padding: 0 0;
+
+          .lottery-content-wrapper {
+            display: flex;
+            width: 100%;
+            gap: 30px;
+            align-items: flex-start;
+          }
+
+          .award-selector {
+             flex: 0 0 280px;
+             background: rgba(255, 255, 255, 0.95);
+             border: 2px solid rgba(0, 0, 0, 0.1);
+             border-radius: 15px;
+             padding: 20px;
+             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+             align-self: flex-start;
+             margin-top: -20px;
+
+            .award-select {
+              width: 100%;
+              margin-bottom: 15px;
+
+              :deep(.el-input__wrapper) {
+                background: rgba(255, 255, 255, 0.9);
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+              }
+
+              :deep(.el-input__inner) {
+                font-size: 1rem;
+                color: var(--text-color);
+              }
+            }
+
+            .award-desc {
+               font-size: 0.9rem;
+               color: rgba(0, 0, 0, 0.7);
+               margin: 0;
+               line-height: 1.4;
+
+               span {
+                 display: block;
+                 margin-bottom: 5px;
+               }
+             }
+          }
+
+          .lottery-area-right {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+          }
 
           .loading-error-container {
             width: 100%;
@@ -1253,30 +1305,89 @@ const loadParticipants = () => {
           }
 
           .lottery-animation {
-            width: 100%;
-             height: 300px;
-             border-radius: 10px;
-             display: flex;
-             align-items: center;
-             justify-content: center;
-             margin-bottom: 10px;
-             overflow: hidden;
-             position: relative;
+          width: 500px;
+          height: 350px;
+          background: rgba(255, 255, 255, 0.95);
+          border: 2px solid rgba(255, 215, 0, 0.8);
+          border-radius: 5px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+          overflow: hidden;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+          margin: 5px 0;
 
-            .rolling-name {
-               font-size: 3rem;
-               font-weight: bold;
-               color: #fff;
-               text-align: center;
-               transition: transform 0.3s ease, color 0.3s ease;
-               text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
-               animation: swing 0.5s ease-in-out infinite;
+            // 中奖区域的上下边线
+            &::before,
+            &::after {
+              content: "";
+              position: absolute;
+              // left: 20px;
+              // right: 20px;
+              height: 2px;
+              background: linear-gradient(90deg, 
+                transparent 0%, 
+                var(--secondary-color) 20%, 
+                var(--secondary-color) 80%, 
+                transparent 100%);
+              z-index: 2;
+              box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            }
+            
+            &::before { top: 100px; }
+            &::after { top: 100px; }
 
-               &.winner-highlight {
-                 color: var(--primary-color);
-                 animation: winner-pulse 2s infinite;
-                 text-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.5);
-               }
+            .rolling-container {
+              position: relative;
+              width: 100%;
+              height: 100%;
+            }
+
+            .rolling-names {
+              position: relative;
+              transition: transform 0.3s ease-out;
+            }
+
+            .rolling-name-item {
+              height: 100px;
+              line-height: 100px;
+              font-size: 2.2em;
+              text-align: center;
+              color: rgba(255, 255, 255, 0.6);
+              filter: blur(2px);
+              opacity: 0.6;
+              transition: all 0.3s ease;
+              text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+              font-weight: 500;
+
+              &.current-name {
+                color: #fff;
+                filter: none;
+                opacity: 1;
+                transform: scale(1.3);
+                font-weight: bold;
+                text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5),
+                            0 0 20px rgba(255, 215, 0, 0.3);
+                background: linear-gradient(135deg, 
+                  rgba(255, 215, 0, 0.1) 0%, 
+                  rgba(255, 77, 77, 0.1) 100%);
+                border-radius: 10px;
+                margin: 0 20px;
+              }
+
+              &.winner-highlight {
+                color: var(--secondary-color);
+                animation: winner-pulse 2s infinite;
+                text-shadow: 0 0 20px rgba(255, 215, 0, 0.8),
+                            2px 2px 8px rgba(0, 0, 0, 0.5);
+                background: linear-gradient(135deg, 
+                  rgba(255, 215, 0, 0.2) 0%, 
+                  rgba(255, 77, 77, 0.2) 100%);
+                border: 2px solid rgba(255, 215, 0, 0.3);
+                border-radius: 10px;
+                margin: 0 20px;
+              }
             }
           }
 
@@ -1290,7 +1401,7 @@ const loadParticipants = () => {
 
               .start-btn,
               .stop-btn {
-                width: 150px;
+                width: 100px;
                 height: 50px;
                 font-size: 1.2rem;
                 border: none;
@@ -1464,7 +1575,7 @@ const loadParticipants = () => {
 
   .lottery-card,
   .winner-card {
-    height: 400px;
+    height: 500px;
   }
 }
 </style>
