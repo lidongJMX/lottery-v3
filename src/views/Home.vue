@@ -50,6 +50,10 @@
                   <el-icon><Timer /></el-icon>
                   <span>设置抽奖时间</span>
                 </el-dropdown-item>
+                <el-dropdown-item @click="toggleFullScreen">
+                  <el-icon><FullScreen /></el-icon>
+                  <span>{{ isFullScreen ? '退出全屏' : '进入全屏' }}</span>
+                </el-dropdown-item>
                 <el-dropdown-item @click="logout">
                   <el-icon><SwitchButton /></el-icon>
                   <span>退出登录</span>
@@ -118,11 +122,21 @@
                     </div>
 
                     <div class="lottery-animation">
-                      <transition name="roll">
-                        <div class="rolling-name" :class="{ 'winner-highlight': !isDrawing && currentRollingName }">
-                          {{ currentRollingName ? currentRollingName.name : '等待开始' }}
+                      <div class="rolling-container">
+                        <div class="rolling-names" :style="{ transform: `translateY(${rollingOffset}px)` }">
+                          <div 
+                            v-for="(name, index) in displayNames" 
+                            :key="index"
+                            class="rolling-name-item"
+                            :class="{ 
+                              'current-name': index === centerIndex,
+                              'winner-highlight': !isDrawing && index === centerIndex && currentRollingName
+                            }"
+                          >
+                            {{ name ? name.name : '等待开始' }}
+                          </div>
                         </div>
-                      </transition>
+                      </div>
                     </div>
 
                     <div class="lottery-controls">
@@ -193,7 +207,9 @@ import {
   SwitchButton,
   More,
   Picture,
-  Timer
+  Timer,
+  FullScreen,
+  Aim
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as XLSX from 'xlsx'
@@ -276,7 +292,7 @@ const getLevelType = (level) => {
 }
 
 const getLevelText = (level) => {
-  const texts = ['一等奖', '二等奖', '三等奖']
+  const texts = ['特等奖','一等奖', '二等奖', '三等奖']
   return texts[level - 1] || `${level}等奖`
 }
 
@@ -290,6 +306,8 @@ const loadError = ref(false)
 const currentRollingName = ref(null)
 const rollingInterval = ref(null)
 const rollingSpeed = ref(50)
+// 全屏状态
+const isFullScreen = ref(false)
 // 从API获取参与者列表
 const participants = ref([])
 const availableParticipants = ref([])
@@ -309,6 +327,14 @@ const lastRoundWinners = computed(() => {
 const isRoundLottery = ref(false)
 // 当前轮次抽奖的奖项索引
 const currentRoundIndex = ref(0)
+
+// 滚动动画相关数据
+const displayNames = ref([])
+const rollingOffset = ref(0)
+const centerIndex = ref(2) // 中心位置索引
+const itemHeight = ref(80) // 每个名字项的高度
+const scrollSpeed = ref(8) // 滚动速度
+const isStopping = ref(false) // 是否正在停止
 
 // 加载中奖者列表
 const loadWinners = () => {
@@ -399,6 +425,9 @@ onMounted(() => {
     }
   }
   
+  // 添加全屏状态变化监听器
+  document.addEventListener('fullscreenchange', handleFullScreenChange)
+  
   loadawards()
   loadWinners()
   // 获取未中奖用户+50%的中奖用户
@@ -418,6 +447,12 @@ onMounted(() => {
       loadError.value = true
     })
 })
+
+// 组件卸载时移除监听器
+onUnmounted(() => {
+  document.removeEventListener('fullscreenchange', handleFullScreenChange)
+})
+
 //     .catch(error => {
 //       console.error('获取参与者列表错误:', error)
 //       loadError.value = true
@@ -535,16 +570,70 @@ const startLottery = async () => {
     }
     isDrawing.value = true
 
-    // 开始滚动名字
-    let index = 0
-    rollingInterval.value = setInterval(() => {
-      index = Math.floor(Math.random() * availableParticipantsList.length)
-      currentRollingName.value = availableParticipantsList[index]
-      // 滚动到最后一个参与者时，重新开始
-      if (index === availableParticipantsList.length - 1) {
-        index = 0
+    // 初始化显示名单（填充足够多的名字用于滚动）
+    const initDisplayNames = () => {
+      const names = []
+      // 创建足够多的名字用于循环滚动
+      for (let i = 0; i < availableParticipantsList.length * 3; i++) {
+        const index = i % availableParticipantsList.length
+        names.push(availableParticipantsList[index])
       }
-    }, rollingSpeed) // 控制滚动速度
+      return names
+    }
+    
+    displayNames.value = initDisplayNames()
+    rollingOffset.value = 0
+    scrollSpeed.value = 8 // 重置滚动速度
+    isStopping.value = false // 重置停止状态
+    
+    // 更新当前高亮的名字
+    const updateCurrentName = () => {
+      const centerY = 150 // 容器高度的一半
+      const index = Math.floor((rollingOffset.value + centerY) / itemHeight.value)
+      if (index >= 0 && index < displayNames.value.length) {
+        currentRollingName.value = displayNames.value[index]
+      }
+    }
+    
+    // 连续滚动动画函数
+    const rollAnimation = () => {
+      if (!isDrawing.value) return
+      
+      // 如果正在停止，逐渐减速
+      if (isStopping.value) {
+        scrollSpeed.value *= 0.95
+        if (scrollSpeed.value < 0.5) {
+          // 对齐到最近的名字
+          const remainder = rollingOffset.value % itemHeight.value
+          if (remainder < itemHeight.value / 2) {
+            // 向上对齐
+            rollingOffset.value -= remainder
+          } else {
+            // 向下对齐
+            rollingOffset.value += (itemHeight.value - remainder)
+          }
+          updateCurrentName()
+          isDrawing.value = false
+          isStopping.value = false
+          return
+        }
+      }
+      
+      // 连续滚动
+      rollingOffset.value += scrollSpeed.value
+      
+      // 当滚动超过一个完整循环时，重置偏移量
+      if (rollingOffset.value >= displayNames.value.length * itemHeight.value) {
+        rollingOffset.value = 0
+      }
+      
+      updateCurrentName()
+      animationId.value = requestAnimationFrame(rollAnimation)
+    }
+    
+    // 开始滚动动画
+    updateCurrentName()
+    animationId.value = requestAnimationFrame(rollAnimation)
 
     // 播放抽奖音效
     playLotterySound()
@@ -560,8 +649,25 @@ const startLottery = async () => {
 const stopLottery = async () => {
   if (!isDrawing.value) return
 
+  // 触发减速停止
+  isStopping.value = true
   clearInterval(rollingInterval.value)
-  isDrawing.value = false
+  
+  // 等待动画自然停止
+  const waitForStop = () => {
+    return new Promise((resolve) => {
+      const checkStop = () => {
+        if (!isDrawing.value) {
+          resolve()
+        } else {
+          setTimeout(checkStop, 100)
+        }
+      }
+      checkStop()
+    })
+  }
+  
+  await waitForStop()
 
   // 找到对应的奖项
   let awards_to_draw = []
@@ -807,6 +913,34 @@ const clearAllData = async () => {
   }
 }
 
+// 切换全屏功能
+const toggleFullScreen = () => {
+  if (!document.fullscreenElement) {
+    // 进入全屏
+    document.documentElement.requestFullscreen().then(() => {
+      isFullScreen.value = true
+      ElMessage.success('已进入全屏模式')
+    }).catch(err => {
+      console.error('进入全屏失败:', err)
+      ElMessage.error('进入全屏失败，请检查浏览器权限')
+    })
+  } else {
+    // 退出全屏
+    document.exitFullscreen().then(() => {
+      isFullScreen.value = false
+      ElMessage.success('已退出全屏模式')
+    }).catch(err => {
+      console.error('退出全屏失败:', err)
+      ElMessage.error('退出全屏失败')
+    })
+  }
+}
+
+// 监听全屏状态变化
+const handleFullScreenChange = () => {
+  isFullScreen.value = !!document.fullscreenElement
+}
+
 // 加载参与者列表
 const loadParticipants = () => {
   isLoadingParticipants.value = true
@@ -852,35 +986,30 @@ const loadParticipants = () => {
   }
 
   .el-header {
-    // background: rgba(255, 255, 255, 0.9);
-    background: transparent !important;  // 添加这行使导航背景透明
+    background: transparent;
     color: white;
     padding: 0 20px;
-    position: relative;
-    z-index: 2;
-    // box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 
     .nav-container {
-      max-width: 1200px;
-      margin: 0 auto;
       display: flex;
       align-items: center;
       justify-content: space-between;
       height: 100%;
 
       .logo {
-        font-size: 1.5rem;
+        font-size: 24px;
         font-weight: bold;
-        // color: var(--primary-color);
-        color: #ffffff;
+        color: #fff;
         text-decoration: none;
-        transition: color 0.3s ease;;
+        transition: color 0.3s ease;
       }
 
       .nav-menu {
         background: transparent;
         border-bottom: none;
-        color: white !important;  // 确保菜单项文字也是白色
+        color: white !important;
         :deep(.el-menu-item) {
           color: #ffffff;
           font-size: 1rem;
@@ -901,58 +1030,79 @@ const loadParticipants = () => {
           }
         }
       }
+
+      .nav-dropdown {
+        .el-dropdown-link {
+          cursor: pointer;
+          
+          .el-icon {
+            color: white;
+            font-size: 20px;
+            transition: color 0.3s ease;
+            
+            &:hover {
+              color: var(--primary-color);
+            }
+          }
+        }
+      }
     }
   }
 
   // 背景选择器样式
-  :deep(.background-selector) {
-    padding: 10px;
-    
-    h3 {
-      text-align: center;
-      margin-bottom: 15px;
-      color: var(--primary-color);
-    }
+   :deep(.background-selector) {
+     padding: 15px;
+     background: rgba(255, 255, 255, 0.1);
+     backdrop-filter: blur(10px);
+     border-radius: 10px;
+     border: 1px solid rgba(255, 255, 255, 0.2);
+     
+     h3 {
+       text-align: center;
+       margin-bottom: 15px;
+       color: white;
+       font-size: 14px;
+     }
     
     .background-options {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 15px;
-      justify-content: center;
-      
-      .bg-option {
-        width: 120px;
-        height: 80px;
-        border-radius: 8px;
-        background-size: cover;
-        background-position: center;
-        cursor: pointer;
-        position: relative;
-        border: 2px solid transparent;
-        transition: all 0.3s ease;
-        overflow: hidden;
-        
-        &:hover {
-          transform: scale(1.05);
-          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-        
-        &.active {
-          border-color: var(--primary-color);
-          box-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.5);
-        }
+       display: flex;
+       flex-wrap: wrap;
+       gap: 15px;
+       justify-content: center;
+       
+       .bg-option {
+         width: 120px;
+         height: 80px;
+         border-radius: 8px;
+         background-size: cover;
+         background-position: center;
+         cursor: pointer;
+         position: relative;
+         border: 2px solid transparent;
+         transition: all 0.3s ease;
+         overflow: hidden;
+         
+         &:hover {
+           transform: scale(1.05);
+           box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+         }
+         
+         &.active {
+           border-color: var(--primary-color);
+           box-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.5);
+         }
         
         span {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          background: rgba(0, 0, 0, 0.6);
-          color: white;
-          padding: 5px;
-          font-size: 12px;
-          text-align: center;
-        }
+           position: absolute;
+           bottom: 0;
+           left: 0;
+           right: 0;
+           background: rgba(0, 0, 0, 0.6);
+           color: white;
+           padding: 5px;
+           font-size: 12px;
+           text-align: center;
+         }
       }
     }
   }
@@ -1002,18 +1152,17 @@ const loadParticipants = () => {
     max-width: 1200px;
 
     .lottery-card {
-      height: 500px;
-      // background: rgba(255, 255, 255, 0.9);
-      background: transparent!important;
-      border: none;
-      // box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-      box-shadow: none !important;
+       height: 500px;
+       background: transparent;
+       border: none;
+       box-shadow: none;
+      
       .lottery-content {
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 20px;
+         height: 100%;
+         display: flex;
+         flex-direction: column;
+         align-items: center;
+         padding: 20px;
 
         .lottery-title {
           display: flex;
@@ -1105,29 +1254,29 @@ const loadParticipants = () => {
 
           .lottery-animation {
             width: 100%;
-            height: 300px;
-            // background: rgba(255, 255, 255, 0.8);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 10px;
-            overflow: hidden;
-            position: relative;
-            // box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+             height: 300px;
+             border-radius: 10px;
+             display: flex;
+             align-items: center;
+             justify-content: center;
+             margin-bottom: 10px;
+             overflow: hidden;
+             position: relative;
 
             .rolling-name {
-              font-size: 5rem;
-              font-weight: bold;
-              color: #ffffff9c;
-              text-align: center;
-              transition: transform 0.3s ease, color 0.3s ease;
+               font-size: 3rem;
+               font-weight: bold;
+               color: #fff;
+               text-align: center;
+               transition: transform 0.3s ease, color 0.3s ease;
+               text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+               animation: swing 0.5s ease-in-out infinite;
 
-              &.winner-highlight {
-                color: var(--primary-color);
-                animation: winner-pulse 2s infinite;
-                text-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.5);
-              }
+               &.winner-highlight {
+                 color: var(--primary-color);
+                 animation: winner-pulse 2s infinite;
+                 text-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.5);
+               }
             }
           }
 
@@ -1240,113 +1389,47 @@ const loadParticipants = () => {
   }
 
 
+/* 动画定义 */
+
 @keyframes swing {
-
-  0%,
-  100% {
-    transform: rotate(-5deg);
-  }
-
-  50% {
-    transform: rotate(5deg);
-  }
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
 }
 
 @keyframes sparkle {
-  0% {
-    background-position: 0 0;
-  }
-
-  100% {
-    background-position: 50px 50px;
-  }
+  0% { background-position: 0 0; }
+  100% { background-position: 50px 50px; }
 }
 
 @keyframes glow {
-
-  0%,
-  100% {
-    text-shadow: 0 0 10px #ffd700, 0 0 20px #ff4d4d;
-  }
-
-  50% {
-    text-shadow: 0 0 20px #ff4d4d, 0 0 30px #ffd700;
-  }
+  0%, 100% { text-shadow: 0 0 10px #ffd700, 0 0 20px #ff4d4d; }
+  50% { text-shadow: 0 0 20px #ff4d4d, 0 0 30px #ffd700; }
 }
 
 @keyframes pointer-pulse {
-
-  0%,
-  100% {
-    transform: translateY(-50%) scale(1);
-    opacity: 1;
-  }
-
-  50% {
-    transform: translateY(-50%) scale(1.2);
-    opacity: 0.8;
-  }
+  0%, 100% { transform: translateY(-50%) scale(1); opacity: 1; }
+  50% { transform: translateY(-50%) scale(1.2); opacity: 0.8; }
 }
 
 @keyframes scroll-shake {
-
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-
-  25% {
-    transform: translateX(-1px);
-  }
-
-  75% {
-    transform: translateX(1px);
-  }
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-1px); }
+  75% { transform: translateX(1px); }
 }
 
 @keyframes flash {
-  from {
-    background-color: rgba(var(--primary-color-rgb), 0.1);
-  }
-
-  to {
-    background-color: rgba(var(--primary-color-rgb), 0.3);
-  }
+  from { background-color: rgba(var(--primary-color-rgb), 0.1); }
+  to { background-color: rgba(var(--primary-color-rgb), 0.3); }
 }
-
-// @keyframes pulse {
-//   0% {
-//     box-shadow: 0 0 5px rgba(var(--primary-color-rgb), 0.3);
-//   }
-
-//   50% {
-//     box-shadow: 0 0 20px rgba(var(--primary-color-rgb), 0.6);
-//   }
-
-//   100% {
-//     box-shadow: 0 0 5px rgba(var(--primary-color-rgb), 0.3);
-//   }
-// }
 
 @keyframes winner-pulse {
+   0%, 100% { transform: scale(1); text-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.5); }
+   50% { transform: scale(1.05); text-shadow: 0 0 20px rgba(var(--primary-color-rgb), 0.8); }
+ }
 
-  0%,
-  100% {
-    transform: scale(1);
-    text-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.5);
-  }
-
-  50% {
-    transform: scale(1.05);
-    text-shadow: 0 0 20px rgba(var(--primary-color-rgb), 0.8);
-  }
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+ @keyframes spin {
+   to { transform: rotate(360deg); }
+ }
 
 @media screen and (max-width: 768px) {
   .el-header {

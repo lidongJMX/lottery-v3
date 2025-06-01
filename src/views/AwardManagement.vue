@@ -120,20 +120,7 @@ const fetchAwardList = async () => {
     console.log('尝试使用fetch API直接访问')
     try {
       // 可以在控制台直接执行这段代码进行测试
-      console.log(`
-// 复制以下代码到浏览器控制台执行，测试API
-fetch('/api/awards')
-  .then(response => {
-    console.log('响应状态:', response.status)
-    return response.json()
-  })
-  .then(data => {
-    console.log('API响应数据:', data)
-  })
-  .catch(error => {
-    console.error('API请求失败:', error)
-  })
-      `)
+      
 
       const response = await fetch('/api/awards')
       console.log('fetch响应状态:', response.status)
@@ -141,6 +128,7 @@ fetch('/api/awards')
       console.log('fetch API响应数据:', data)
 
       if (Array.isArray(data) && data.length > 0) {
+        console.log('从fetch API获取奖项列表成功', data)
         awardList.value = data
         return
       }
