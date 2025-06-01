@@ -19,7 +19,7 @@ const awardController = {
       });
       
       console.log('查询结果条数:', awards.length);
-      console.log('查询结果:', JSON.stringify(awards, null, 2));
+      // console.log('查询结果:', JSON.stringify(awards, null, 2));
       
       // 如果结果为空，尝试直接执行SQL
       if (awards.length === 0) {

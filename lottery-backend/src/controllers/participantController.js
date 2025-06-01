@@ -8,19 +8,19 @@ const participantController = {
     try {
       // 获取未中奖用户
       const notWon = await Participant.findAll({
-        where: { has_won: false }
+        // where: { has_won: false }
       });
-      
+      res.json(notWon);
       // 获取50%的已中奖用户
-      const allWon = await Participant.findAll({
-        where: { has_won: true }
-      });
+      // const allWon = await Participant.findAll({
+      //   where: { has_won: true }
+      // });
       
-      const hasWon = allWon.sort(() => 0.5 - Math.random()).slice(0, Math.ceil(allWon.length * 0.1));
+      // const hasWon = allWon.sort(() => 0.5 - Math.random()).slice(0, Math.ceil(allWon.length * 0.1));
       
-      const participants = [...notWon, ...hasWon];
+      // const participants = [...notWon, ...hasWon];
       
-      res.json(participants);
+      // res.json(participants);
     } catch (error) {
       console.error('获取抽奖名单错误:', error);
       res.status(500).json({ error: '获取抽奖名单失败' });

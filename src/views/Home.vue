@@ -684,7 +684,7 @@ const stopLottery = async () => {
       },
       body: JSON.stringify({
         awards_to_draw: awards_to_draw,
-        participants: availableParticipants.value,
+        // participants: availableParticipants.value,
       })
     });
     console.log('参与者:', availableParticipants)

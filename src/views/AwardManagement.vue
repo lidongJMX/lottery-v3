@@ -9,6 +9,7 @@
       </template>
 
       <el-table v-loading="loading" :data="awardList" style="width: 100%" border>
+        <el-table-column prop= "id" type="index" label="序号" width="60" />
         <el-table-column prop="name" label="奖项名称" width="180" />
         <el-table-column prop="description" label="奖项描述" />
         <el-table-column label="总数量" width="100">
