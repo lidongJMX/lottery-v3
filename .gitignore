@@ -27,3 +27,4 @@ replay_pid*
 node_modules
 build/
 lottery-backend/database.sqlite
+lottery-backend/database.sqlite
