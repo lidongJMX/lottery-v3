@@ -10,24 +10,30 @@
       <el-header>
         <div class="nav-container">
           <div class="logo">年会抽奖系统</div>
-          
+
           <!-- 将菜单项放入下拉菜单 -->
           <el-dropdown trigger="click" class="nav-dropdown">
             <span class="el-dropdown-link">
               <!-- <el-button type="primary" icon="el-icon-menu" ></el-button> -->
-              <el-icon><More /></el-icon>
+              <el-icon>
+                <More />
+              </el-icon>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item>
                   <router-link to="/awards">
-                    <el-icon><Trophy /></el-icon>
+                    <el-icon>
+                      <Trophy />
+                    </el-icon>
                     <span>奖项管理</span>
                   </router-link>
                 </el-dropdown-item>
                 <el-dropdown-item>
                   <router-link to="/participants">
-                    <el-icon><User /></el-icon>
+                    <el-icon>
+                      <User />
+                    </el-icon>
                     <span>人员管理</span>
                   </router-link>
                 </el-dropdown-item>
@@ -35,27 +41,39 @@
                   <span>导出中奖名单</span>
                 </el-dropdown-item>
                 <el-dropdown-item @click="resetLotteryData">
-                  <el-icon><Refresh /></el-icon>
+                  <el-icon>
+                    <Refresh />
+                  </el-icon>
                   <span>重置中奖数据</span>
                 </el-dropdown-item>
                 <el-dropdown-item @click="clearAllData">
-                  <el-icon><Delete /></el-icon>
+                  <el-icon>
+                    <Delete />
+                  </el-icon>
                   <span>清空所有数据</span>
                 </el-dropdown-item>
                 <el-dropdown-item @click="openBackgroundSelector">
-                  <el-icon><Picture /></el-icon>
+                  <el-icon>
+                    <Picture />
+                  </el-icon>
                   <span>选择背景图片</span>
                 </el-dropdown-item>
                 <el-dropdown-item @click="openDateTimePicker">
-                  <el-icon><Timer /></el-icon>
+                  <el-icon>
+                    <Timer />
+                  </el-icon>
                   <span>设置抽奖时间</span>
                 </el-dropdown-item>
                 <el-dropdown-item @click="toggleFullScreen">
-                  <el-icon><FullScreen /></el-icon>
+                  <el-icon>
+                    <FullScreen />
+                  </el-icon>
                   <span>{{ isFullScreen ? '退出全屏' : '进入全屏' }}</span>
                 </el-dropdown-item>
                 <el-dropdown-item @click="logout">
-                  <el-icon><SwitchButton /></el-icon>
+                  <el-icon>
+                    <SwitchButton />
+                  </el-icon>
                   <span>退出登录</span>
                 </el-dropdown-item>
               </el-dropdown-menu>
@@ -126,23 +144,18 @@
                       <!-- 右侧抽奖区域 -->
                       <div class="lottery-area-right">
 
-                    <div class="lottery-animation">
-                      <div class="rolling-container">
-                        <div class="rolling-names" :style="{ transform: `translateY(${rollingOffset}px)` }">
-                          <div 
-                            v-for="(name, index) in displayNames" 
-                            :key="index"
-                            class="rolling-name-item"
-                            :class="{ 
-                              'current-name': index === centerIndex,
-                              'winner-highlight': !isDrawing && index === centerIndex && currentRollingName
-                            }"
-                          >
-                            {{ name ? name.name : '等待开始' }}
+                        <div class="lottery-animation">
+                          <div class="rolling-container">
+                            <div class="rolling-names" :style="{ transform: `translateY(${rollingOffset}px)` }">
+                              <div v-for="(name, index) in displayNames" :key="index" class="rolling-name-item" :class="{
+                                'current-name': index === centerIndex,
+                                'winner-highlight': !isDrawing && index === centerIndex && currentRollingName
+                              }">
+                                {{ name ? name.name : '等待开始' }}
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
 
                         <div class="lottery-controls">
                           <div class="control-row">
@@ -180,14 +193,11 @@
                       <span class="winner-award" :style="{ color: winner.color, backgroundColor: winner.color + '20' }">
                         {{ winner.award_name }}
                       </span>
-                      <el-button 
-                        type="danger" 
-                        size="small" 
-                        circle 
-                        @click.stop="deleteWinner(winner)" 
-                        class="delete-winner-btn"
-                        title="删除中奖记录">
-                        <el-icon><Delete /></el-icon>
+                      <el-button type="danger" size="small" circle @click.stop="deleteWinner(winner)"
+                        class="delete-winner-btn" title="删除中奖记录">
+                        <el-icon>
+                          <Delete />
+                        </el-icon>
                       </el-button>
                     </div>
                   </div>
@@ -201,32 +211,20 @@
   </div>
 
   <!-- 中奖弹窗 -->
-  <el-dialog
-    v-model="showWinnerDialog"
-    title="中奖通知"
-    :width="winnerDialogWidth"
-    custom-class="winner-popup-box"
-    center
+  <el-dialog v-model="showWinnerDialog" title="中奖通知" :width="winnerDialogWidth" custom-class="winner-popup-box" center
     :custom-style="{
       'max-width': '90vw',
       'max-height': '90vh'
-    }"
-  >
+    }">
     <div class="winner-popup-content">
       <h2 style="text-align: center; color: #E6A23C; margin-bottom: 0px;">恭喜以下人员中奖！</h2>
       <div class="winner-popup-grid">
-        <div 
-          v-for="(winner, index) in lastRoundWinners" 
-          :key="index"
-          class="winner-popup-item"
-          :style="{ backgroundColor: getWinnerColor(winner) + '20' }"
-        >
+        <div v-for="(winner, index) in lastRoundWinners" :key="index" class="winner-popup-item"
+          :style="{ backgroundColor: getWinnerColor(winner) + '20' }">
           <div style="font-size: 18px; font-weight: bold;">{{ winner.name }}</div>
           <div style="font-size: 14px; color: #606266;">{{ winner.department || '未知单位' }}</div>
-          <div 
-            style="font-size: 14px; margin-top: 0px;"
-            :style="{ color: getWinnerColor(winner) }"
-          >{{ getWinnerAwardName(winner) }}</div>
+          <div style="font-size: 14px; margin-top: 0px;" :style="{ color: getWinnerColor(winner) }">{{
+            getWinnerAwardName(winner) }}</div>
         </div>
       </div>
     </div>
@@ -269,9 +267,9 @@ const openBackgroundSelector = () => {
   ElMessageBox.alert(
     h('div', { class: 'background-selector' }, [
       h('h3', '选择背景图片'),
-      h('div', { class: 'background-options' }, 
-        backgroundOptions.map(bg => 
-          h('div', { 
+      h('div', { class: 'background-options' },
+        backgroundOptions.map(bg =>
+          h('div', {
             class: ['bg-option', { active: currentBackground.value === bg.path }],
             onClick: () => selectBackground(bg.path),
             style: { backgroundImage: `url(${bg.path})` }
@@ -284,7 +282,7 @@ const openBackgroundSelector = () => {
     '背景图片选择',
     {
       confirmButtonText: '关闭',
-      callback: () => {}
+      callback: () => { }
     }
   )
 }
@@ -331,7 +329,7 @@ const getLevelType = (level) => {
 }
 
 const getLevelText = (level) => {
-  const texts = ['特等奖','一等奖', '二等奖', '三等奖']
+  const texts = ['特等奖', '一等奖', '二等奖', '三等奖']
   return texts[level - 1] || `${level}等奖`
 }
 
@@ -450,7 +448,7 @@ const deleteWinner = async (winner) => {
 
     // 删除成功后刷新数据
     ElMessage.success('删除成功')
-    
+
     // 重新加载中奖者列表
     loadWinners()
     // 重新加载奖项列表
@@ -470,7 +468,7 @@ onMounted(() => {
   if (savedBackground) {
     currentBackground.value = savedBackground
   }
-  
+
   // 从localStorage加载抽奖时间设置
   const savedCountdownDate = localStorage.getItem('lottery_countdown_date')
   if (savedCountdownDate) {
@@ -483,10 +481,10 @@ onMounted(() => {
       localStorage.removeItem('lottery_countdown_date')
     }
   }
-  
+
   // 添加全屏状态变化监听器
   document.addEventListener('fullscreenchange', handleFullScreenChange)
-  
+
   loadawards()
   loadWinners()
   // 获取未中奖用户+50%的中奖用户
@@ -634,7 +632,7 @@ const startLottery = async () => {
     rollingOffset.value = 0
     scrollSpeed.value = 20 // 初始滚动速度
     isStopping.value = false
-    
+
     // 更新当前高亮的名字
     const updateCurrentName = () => {
       const containerHeight = 300
@@ -644,11 +642,11 @@ const startLottery = async () => {
         currentRollingName.value = displayNames.value[index]
       }
     }
-    
+
     // 滚动动画函数
     const rollAnimation = () => {
       if (!isDrawing.value) return
-      
+
       // 如果正在停止，逐渐减速
       if (isStopping.value) {
         scrollSpeed.value *= 0.95
@@ -659,10 +657,10 @@ const startLottery = async () => {
           return
         }
       }
-      
+
       // 连续滚动
       rollingOffset.value += scrollSpeed.value
-      
+
       // 当滚动超过一个项目高度时，将第一项移到末尾
       if (rollingOffset.value >= itemHeight.value) {
         rollingOffset.value -= itemHeight.value
@@ -670,11 +668,11 @@ const startLottery = async () => {
         const firstItem = displayNames.value.shift()
         displayNames.value.push(firstItem)
       }
-      
+
       updateCurrentName()
       animationId.value = requestAnimationFrame(rollAnimation)
     }
-    
+
     // 停止时对齐函数
     const alignFinal = () => {
       if (rollingOffset.value < itemHeight.value / 2) {
@@ -689,7 +687,7 @@ const startLottery = async () => {
       updateCurrentName()
       isStopping.value = false
     }
-    
+
     // 开始滚动动画
     updateCurrentName()
     animationId.value = requestAnimationFrame(rollAnimation)
@@ -782,7 +780,7 @@ const stopLottery = async () => {
     playWinnerSound()
     // 刷新中奖列表
     loadWinners()
-    
+
     // 弹窗展示中奖人员信息
     if (drawnWinners.length > 0) {
       console.log('显示中奖弹窗', drawnWinners[1])
@@ -800,7 +798,7 @@ const stopLottery = async () => {
       }
       showWinnerDialog.value = true
     }
-    
+
     // 轮次抽奖模式结束处理
     if (isRoundLottery.value) {
       const remainingAwards = awards.value.filter(p => p.remaining_count > 0)
@@ -907,19 +905,19 @@ const resetLotteryData = async () => {
     if (!response.ok) throw new Error('重置失败')
 
     const result = await response.json()
-    
+
     // 重新加载数据
     loadawards()
     loadWinners()
     loadParticipants()
-    
+
     // 重置当前状态
     currentRollingName.value = null
     isDrawing.value = false
     currentAward.value = ''
     isRoundLottery.value = false
     currentRoundIndex.value = 0
-    
+
     // 显示成功消息
     ElMessage.success(result.message || '重置成功')
   } catch (error) {
@@ -954,19 +952,19 @@ const clearAllData = async () => {
     if (!response.ok) throw new Error('清空失败')
 
     const result = await response.json()
-    
+
     // 重新加载数据
     loadawards()
     loadWinners()
     loadParticipants()
-    
+
     // 重置当前状态
     currentRollingName.value = null
     isDrawing.value = false
     currentAward.value = ''
     isRoundLottery.value = false
     currentRoundIndex.value = 0
-    
+
     // 显示成功消息
     ElMessage.success('所有数据已清空')
   } catch (error) {
@@ -1008,7 +1006,7 @@ const handleFullScreenChange = () => {
 const loadParticipants = () => {
   isLoadingParticipants.value = true
   loadError.value = false
-  
+
   // 获取未中奖用户+50%的中奖用户
   fetch('/api/participants/lottery')
     .then(res => {
@@ -1030,613 +1028,745 @@ const loadParticipants = () => {
 </script>
 
 <style lang="scss" scoped>
-  .home-container {
-    min-height: 100vh;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    position: relative;
-  }
+.home-container {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+  position: relative;
+}
 
-  .background {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
+.background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.el-header {
+  background: transparent;
+  color: white;
+  padding: 0 20px;
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+  .nav-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     height: 100%;
-    z-index: 1;
-    pointer-events: none;
-  }
 
-  .el-header {
-    background: transparent;
-    color: white;
-    padding: 0 20px;
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+      background: linear-gradient(135deg, #f8d568 0%, #ff4d4d 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 2px 10px rgba(255, 77, 77, 0.3);
+    }
 
-    .nav-container {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      height: 100%;
+    .nav-menu {
+      background: transparent;
+      border-bottom: none;
+      color: white !important;
 
-      .logo {
-        font-size: 24px;
-        font-weight: bold;
-        color: #fff;
-        text-decoration: none;
-        transition: color 0.3s ease;
-      }
+      :deep(.el-menu-item) {
+        color: #ffffff;
+        font-size: 1rem;
+        height: 60px;
+        line-height: 60px;
 
-      .nav-menu {
-        background: transparent;
-        border-bottom: none;
-        color: white !important;
-        :deep(.el-menu-item) {
-          color: #ffffff;
-          font-size: 1rem;
-          height: 60px;
-          line-height: 60px;
+        &:hover {
+          color: var(--primary-color);
+        }
 
-          &:hover {
-            color: var(--primary-color);
-          }
+        &.is-active {
+          color: var(--primary-color);
+          border-bottom: 2px solid var(--primary-color);
+        }
 
-          &.is-active {
-            color: var(--primary-color);
-            border-bottom: 2px solid var(--primary-color);
-          }
-
-          .el-icon {
-            margin-right: 5px;
-          }
+        .el-icon {
+          margin-right: 5px;
         }
       }
+    }
 
-      .nav-dropdown {
-        .el-dropdown-link {
-          cursor: pointer;
-          
-          .el-icon {
-            color: white;
-            font-size: 20px;
-            transition: color 0.3s ease;
-            
-            &:hover {
-              color: var(--primary-color);
+    .nav-dropdown {
+      .el-dropdown-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 10%;
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(5px);
+        transition: all 0.3s ease;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.3);
+          transform: scale(1.05);
+        }
+
+        .el-icon {
+          font-size: 20px;
+          color: #fff;
+        }
+      }
+    }
+  }
+}
+
+// 背景选择器样式
+:deep(.background-selector) {
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+
+  h3 {
+    text-align: center;
+    margin-bottom: 15px;
+    color: white;
+    font-size: 14px;
+  }
+
+  .background-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+
+    .bg-option {
+      width: 120px;
+      height: 80px;
+      border-radius: 8px;
+      background-size: cover;
+      background-position: center;
+      cursor: pointer;
+      position: relative;
+      border: 2px solid transparent;
+      transition: all 0.3s ease;
+      overflow: hidden;
+
+      &:hover {
+        transform: scale(1.05);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      &.active {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.5);
+      }
+
+      span {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.6);
+        color: white;
+        padding: 5px;
+        font-size: 12px;
+        text-align: center;
+      }
+    }
+  }
+}
+
+.el-main {
+  position: relative;
+  z-index: 2;
+  padding: 20px;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5%;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.header {
+  text-align: center;
+  padding: 40px 0;
+  position: relative;
+
+  .title {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(45deg, #ffd700, #ff4d4d);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: glow 2s ease-in-out infinite;
+  }
+
+  .countdown {
+    font-size: 1.5rem;
+    margin-top: 5px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.lottery-area {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+  width: 100%;
+  margin-top: 20px;
+}
+
+@media (max-width: 1024px) {
+  .lottery-area {
+    grid-template-columns: 1fr;
+  }
+}
+
+.lottery-container {
+  flex: 1;
+  max-width: 1200px;
+
+  .lottery-card {
+    border-radius: 16px;
+    overflow: hidden;
+    backdrop-filter: blur(20px);
+    background-color: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    height: 100%;
+
+    &:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    }
+
+    .lottery-content {
+      padding: 20px;
+
+      .lottery-title {
+        display: flex;
+        align-items: center;
+        margin-bottom: 30px;
+
+        .lottery-icon {
+          color: var(--primary-color);
+          margin-right: 10px;
+        }
+
+        // h2 {
+        //   font-size: 2rem;
+        //   color: var(--primary-color);
+        //   margin: 0;
+        // }
+      }
+
+      .lottery-main {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 400px;
+
+        .lottery-content-wrapper {
+          display: grid;
+          grid-template-columns: 1fr 2fr;
+          gap: 30px;
+          width: 100%;
+          align-items: center;
+        }
+
+        .award-selector {
+          flex: 0 0 280px;
+          background: rgba(226, 72, 72, 0.95);
+          border: 2px solid rgba(0, 0, 0, 0.1);
+          border-radius: 15px;
+          padding: 20px;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+          align-self: flex-start;
+          margin-top: 10px;
+
+          .award-select {
+            width: 100%;
+            margin-bottom: 15px;
+
+            :deep(.el-input__wrapper) {
+              background: rgba(255, 255, 255, 0.9);
+              border-radius: 8px;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            }
+
+            :deep(.el-input__inner) {
+              font-size: 1rem;
+              color: var(--text-color);
+            }
+          }
+
+          .award-desc {
+            font-size: 0.9rem;
+            color: rgba(0, 0, 0, 0.7);
+            margin: 0;
+            line-height: 1.4;
+
+            span {
+              display: block;
+              margin-bottom: 5px;
             }
           }
         }
-      }
-    }
-  }
 
-  // 背景选择器样式
-   :deep(.background-selector) {
-     padding: 15px;
-     background: rgba(255, 255, 255, 0.1);
-     backdrop-filter: blur(10px);
-     border-radius: 10px;
-     border: 1px solid rgba(255, 255, 255, 0.2);
-     
-     h3 {
-       text-align: center;
-       margin-bottom: 15px;
-       color: white;
-       font-size: 14px;
-     }
-    
-    .background-options {
-       display: flex;
-       flex-wrap: wrap;
-       gap: 15px;
-       justify-content: center;
-       
-       .bg-option {
-         width: 120px;
-         height: 80px;
-         border-radius: 8px;
-         background-size: cover;
-         background-position: center;
-         cursor: pointer;
-         position: relative;
-         border: 2px solid transparent;
-         transition: all 0.3s ease;
-         overflow: hidden;
-         
-         &:hover {
-           transform: scale(1.05);
-           box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-         }
-         
-         &.active {
-           border-color: var(--primary-color);
-           box-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.5);
-         }
-        
-        span {
-           position: absolute;
-           bottom: 0;
-           left: 0;
-           right: 0;
-           background: rgba(0, 0, 0, 0.6);
-           color: white;
-           padding: 5px;
-           font-size: 12px;
-           text-align: center;
-         }
-      }
-    }
-  }
-
-  .el-main {
-    position: relative;
-    z-index: 2;
-    padding: 20px;
-  }
-
-  .content {
-    max-width: 100%;
-    margin: 0 auto;
-  }
-
-  .header {
-    text-align: center;
-    padding: 40px 0;
-    position: relative;
-
-    .title {
-      font-size: 3rem;
-      margin-bottom: 20px;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-      background: linear-gradient(45deg, #ffd700, #ff4d4d);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: glow 2s ease-in-out infinite;
-    }
-
-    .countdown {
-      font-size: 1.5rem;
-      margin-top: 5px;
-      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-    }
-  }
-
-  .lottery-area {
-    display: flex;
-    gap: 20px;
-    margin-top: 20px;
-    justify-content: center;
-  }
-
-  .lottery-container {
-    flex: 1;
-    max-width: 1200px;
-
-    .lottery-card {
-       height: 500px;
-       background: transparent;
-       border: none;
-       box-shadow: none;
-      
-      .lottery-content {
-        box-sizing: border-box;
-         height: 500px;
-        //  display: flex;
-         flex-direction: column;
-         align-items: center;
-         padding: 0;
-
-        .lottery-title {
-          display: flex;
-          align-items: center;
-          margin-bottom: 30px;
-
-          .lottery-icon {
-            color: var(--primary-color);
-            margin-right: 10px;
-          }
-
-          // h2 {
-          //   font-size: 2rem;
-          //   color: var(--primary-color);
-          //   margin: 0;
-          // }
-        }
-
-        .lottery-main {
+        .lottery-area-right {
+          flex: 1;
           display: flex;
           flex-direction: column;
           align-items: center;
+        }
+
+        .loading-error-container {
           width: 100%;
-          height: 100%;
-          // padding: 0 0;
+          padding: 20px;
+          text-align: center;
 
-          .lottery-content-wrapper {
+          .loading-message {
             display: flex;
-            width: 100%;
-            gap: 30px;
-            align-items: flex-start;
-          }
-
-          .award-selector {
-             flex: 0 0 280px;
-             background: rgba(255, 255, 255, 0.95);
-             border: 2px solid rgba(0, 0, 0, 0.1);
-             border-radius: 15px;
-             padding: 20px;
-             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-             align-self: flex-start;
-             margin-top: -20px;
-
-            .award-select {
-              width: 100%;
-              margin-bottom: 15px;
-
-              :deep(.el-input__wrapper) {
-                background: rgba(255, 255, 255, 0.9);
-                border-radius: 8px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-              }
-
-              :deep(.el-input__inner) {
-                font-size: 1rem;
-                color: var(--text-color);
-              }
-            }
-
-            .award-desc {
-               font-size: 0.9rem;
-               color: rgba(0, 0, 0, 0.7);
-               margin: 0;
-               line-height: 1.4;
-
-               span {
-                 display: block;
-                 margin-bottom: 5px;
-               }
-             }
-          }
-
-          .lottery-area-right {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
             align-items: center;
-          }
+            justify-content: center;
+            margin-bottom: 10px;
 
-          .loading-error-container {
-            width: 100%;
-            padding: 20px;
-            text-align: center;
-
-            .loading-message {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              margin-bottom: 10px;
-
-              .loading-spinner {
-                display: inline-block;
-                width: 20px;
-                height: 20px;
-                margin-right: 10px;
-                border: 2px solid rgba(var(--primary-color-rgb), 0.3);
-                border-top-color: var(--primary-color);
-                border-radius: 50%;
-                animation: spin 1s linear infinite;
-              }
-            }
-
-            .error-message {
-              color: #ff4d4d;
-
-              .retry-btn {
-                border: none;
-                background: #ff4d4d;
-                color: white;
-                padding: 5px 15px;
-                border-radius: 4px;
-                margin-left: 10px;
-                cursor: pointer;
-
-                &:hover {
-                  background: darken(#ff4d4d, 10%);
-                }
-              }
+            .loading-spinner {
+              display: inline-block;
+              width: 20px;
+              height: 20px;
+              margin-right: 10px;
+              border: 2px solid rgba(var(--primary-color-rgb), 0.3);
+              border-top-color: var(--primary-color);
+              border-radius: 50%;
+              animation: spin 1s linear infinite;
             }
           }
 
-          .award-title {
-            text-align: center;
-            margin-bottom: 30px;
+          .error-message {
+            color: #ff4d4d;
 
-            .award-select {
-              width: 300px;
-              margin-bottom: 10px;
+            .retry-btn {
+              border: none;
+              background: #ff4d4d;
+              color: white;
+              padding: 5px 15px;
+              border-radius: 4px;
+              margin-left: 10px;
+              cursor: pointer;
 
-              :deep(.el-input__inner) {
-                font-size: 1.2rem;
-                color: var(--primary-color);
-                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-              }
-            }
-
-            .award-desc {
-              font-size: 1.2rem;
-              color: #666;
-              margin: 0;
-            }
-          }
-
-          .lottery-animation {
-          width: 500px;
-          height: 350px;
-          background: rgba(255, 255, 255, 0.95);
-          border: 2px solid rgba(255, 215, 0, 0.8);
-          border-radius: 5px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-          overflow: hidden;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-          margin: 5px 0;
-
-            // 中奖区域的上下边线
-            &::before,
-            &::after {
-              content: "";
-              position: absolute;
-              // left: 20px;
-              // right: 20px;
-              height: 2px;
-              background: linear-gradient(90deg, 
-                transparent 0%, 
-                var(--secondary-color) 20%, 
-                var(--secondary-color) 80%, 
-                transparent 100%);
-              z-index: 2;
-              box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-            }
-            
-            &::before { top: 100px; }
-            &::after { top: 100px; }
-
-            .rolling-container {
-              position: relative;
-              width: 100%;
-              height: 100%;
-            }
-
-            .rolling-names {
-              position: relative;
-              transition: transform 0.3s ease-out;
-            }
-
-            .rolling-name-item {
-              height: 100px;
-              line-height: 100px;
-              font-size: 2.2em;
-              text-align: center;
-              color: rgba(255, 255, 255, 0.6);
-              filter: blur(2px);
-              opacity: 0.6;
-              transition: all 0.3s ease;
-              text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-              font-weight: 500;
-
-              &.current-name {
-                color: #fff;
-                filter: none;
-                opacity: 1;
-                transform: scale(1.3);
-                font-weight: bold;
-                text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5),
-                            0 0 20px rgba(255, 215, 0, 0.3);
-                background: linear-gradient(135deg, 
-                  rgba(255, 215, 0, 0.1) 0%, 
-                  rgba(255, 77, 77, 0.1) 100%);
-                border-radius: 10px;
-                margin: 0 20px;
-              }
-
-              &.winner-highlight {
-                color: var(--secondary-color);
-                animation: winner-pulse 2s infinite;
-                text-shadow: 0 0 20px rgba(255, 215, 0, 0.8),
-                            2px 2px 8px rgba(0, 0, 0, 0.5);
-                background: linear-gradient(135deg, 
-                  rgba(255, 215, 0, 0.2) 0%, 
-                  rgba(255, 77, 77, 0.2) 100%);
-                border: 2px solid rgba(255, 215, 0, 0.3);
-                border-radius: 10px;
-                margin: 0 20px;
-              }
-            }
-          }
-
-          .lottery-controls {
-            width: 100%;
-
-            .control-row {
-              display: flex;
-              justify-content: center;
-              gap: 20px;
-
-              .start-btn,
-              .stop-btn {
-                width: 100px;
-                height: 50px;
-                font-size: 1.2rem;
-                border: none;
-                border-radius: 5px;
+              &:hover {
+                background: darken(#ff4d4d, 10%);
               }
             }
           }
         }
-      }
-    }
-  }
 
-  .winner-container {
-    flex: 1;
-    max-width: 400px;
-
-    .winner-card {
-      height: 500px;
-      background: rgba(255, 255, 255, 0.9);
-      border: none;
-      // box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-
-      .winner-content {
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        padding: 20px;
-
-        .winner-title {
-          display: flex;
-          align-items: center;
+        .award-title {
+          text-align: center;
           margin-bottom: 30px;
 
-          .winner-icon {
-            color: #ffd700;
-            margin-right: 10px;
+          .award-select {
+            width: 300px;
+            margin-bottom: 10px;
+
+            :deep(.el-input__inner) {
+              font-size: 1.2rem;
+              color: var(--primary-color);
+              text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            }
           }
 
-          h2 {
-            font-size: 2rem;
-            color: #ffd700;
+          .award-desc {
+            font-size: 1.2rem;
+            color: #666;
             margin: 0;
           }
         }
 
-        .winner-list {
-          flex: 1;
-          overflow-y: auto;
-          padding: 5px;
+        .lottery-animation {
+          position: relative;
+          height: 300px;
+          width: 100%;
+          overflow: hidden;
+          border-radius: 12px;
+          background: rgba(0, 0, 0, 0.1);
+          box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
 
-          .winner-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 3px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-            margin-bottom: 8px;
-            border-radius: 5px;
-            transition: all 0.3s ease;
+          &::before,
+          &::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 100px;
+            z-index: 2;
+            pointer-events: none;
+          }
+
+          &::before {
+            top: 0;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.2), transparent);
+          }
+
+          &::after {
+            bottom: 0;
+            background: linear-gradient(to top, rgba(236, 66, 66, 0.363), transparent);
+          }
+
+          .rolling-container {
             position: relative;
+            width: 100%;
+            height: 100%;
+          }
 
-            &:hover {
-              transform: translateX(5px);
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          .rolling-names {
+            position: relative;
+            transition: transform 0.3s ease-out;
+          }
 
-              .delete-winner-btn {
-                opacity: 1;
-              }
+          .rolling-name-item {
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.7);
+            transition: all 0.3s ease;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+
+            &.current-name {
+              color: #ffffff;
+              font-size: 32px;
+              text-shadow: 0 0 10px rgba(248, 213, 104, 0.8);
             }
 
-            .winner-name {
-              font-size: 0.9rem;
-              color: #333;
-              font-weight: bold;
-            }
-
-            .winner-award {
-              font-size: 1rem;
-              font-weight: bold;
-              padding: 5px 10px;
-              border-radius: 15px;
-            }
-
-            .delete-winner-btn {
-              opacity: 0;
-              transition: opacity 0.3s ease;
-              position: absolute;
-              right: 5px;
-              top: 50%;
-              transform: translateY(-50%);
+            &.winner-highlight {
+              color: var(--secondary-color);
+              animation: winner-pulse 2s infinite;
+              text-shadow: 0 0 20px rgba(255, 215, 0, 0.8),
+                2px 2px 8px rgba(0, 0, 0, 0.5);
+              background: linear-gradient(135deg,
+                  rgba(255, 215, 0, 0.2) 0%,
+                  rgba(255, 77, 77, 0.2) 100%);
+              border: 2px solid rgba(255, 215, 0, 0.3);
+              border-radius: 10px;
+              margin: 0 20px;
             }
           }
+        }
+
+        .lottery-controls {
+          margin-top: 60px;
+          display: flex;
+          justify-content: center;
+          gap: 20px;
+
+          .start-btn,
+          .stop-btn {
+            min-width: 120px;
+            height: 50px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+
+            &:hover:not(:disabled) {
+              transform: translateY(-3px);
+              box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            }
+          }
+
+          .start-btn {
+            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+            border: none;
+          }
+
+          .stop-btn {
+            background: linear-gradient(135deg, #F44336 0%, #C62828 100%);
+            border: none;
+          }
+
+          // .control-row {
+          //   display: flex;
+          //   justify-content: center;
+          //   gap: 20px;
+
+          //   .start-btn,
+          //   .stop-btn {
+          //     width: 100px;
+          //     height: 50px;
+          //     font-size: 1.2rem;
+          //     border: none;
+          //     border-radius: 5px;
+          //   }
+          // }
         }
       }
     }
   }
+}
+
+.winner-container {
+  flex: 1;
+  max-width: 400px;
+
+  .winner-card {
+    border-radius: 16px;
+    overflow: hidden;
+    backdrop-filter: blur(20px);
+    background-color: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    height: 100%;
+
+    .winner-content {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .winner-title {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+
+      .winner-icon {
+        color: #f8d568;
+        margin-right: 15px;
+        filter: drop-shadow(0 0 5px rgba(248, 213, 104, 0.5));
+      }
+
+      h2 {
+        font-size: 24px;
+        background: linear-gradient(135deg, #f8d568 0%, #ff4d4d 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0;
+      }
+    }
+
+    .winner-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 5px;
+
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 3px;
+      }
+
+      .winner-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 15px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        position: relative;
+        backdrop-filter: blur(5px);
+
+        &:hover {
+          transform: translateX(5px);
+          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+
+          .delete-winner-btn {
+            opacity: 1;
+          }
+        }
+
+        .winner-name {
+          font-size: 14px;
+          font-weight: 500;
+          color: rgba(255, 255, 255, 0.9);
+        }
+
+        .winner-award {
+          font-size: 14px;
+          font-weight: bold;
+          padding: 4px 12px;
+          border-radius: 20px;
+        }
+
+        .delete-winner-btn {
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          position: absolute;
+          right: 10px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 28px;
+          height: 28px;
+          padding: 0;
+        }
+      }
+    }
+  }
+}
 
 
 /* 动画定义 */
 
 @keyframes swing {
-  0%, 100% { transform: rotate(-5deg); }
-  50% { transform: rotate(5deg); }
+
+  0%,
+  100% {
+    transform: rotate(-5deg);
+  }
+
+  50% {
+    transform: rotate(5deg);
+  }
 }
 
 @keyframes sparkle {
-  0% { background-position: 0 0; }
-  100% { background-position: 50px 50px; }
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 50px 50px;
+  }
 }
 
 @keyframes glow {
-  0%, 100% { text-shadow: 0 0 10px #ffd700, 0 0 20px #ff4d4d; }
-  50% { text-shadow: 0 0 20px #ff4d4d, 0 0 30px #ffd700; }
+
+  0%,
+  100% {
+    text-shadow: 0 0 10px #ffd700, 0 0 20px #ff4d4d;
+  }
+
+  50% {
+    text-shadow: 0 0 20px #ff4d4d, 0 0 30px #ffd700;
+  }
 }
 
 @keyframes pointer-pulse {
-  0%, 100% { transform: translateY(-50%) scale(1); opacity: 1; }
-  50% { transform: translateY(-50%) scale(1.2); opacity: 0.8; }
+
+  0%,
+  100% {
+    transform: translateY(-50%) scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: translateY(-50%) scale(1.2);
+    opacity: 0.8;
+  }
 }
 
 @keyframes scroll-shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-1px); }
-  75% { transform: translateX(1px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-1px);
+  }
+
+  75% {
+    transform: translateX(1px);
+  }
 }
 
 @keyframes flash {
-  from { background-color: rgba(var(--primary-color-rgb), 0.1); }
-  to { background-color: rgba(var(--primary-color-rgb), 0.3); }
+  from {
+    background-color: rgba(var(--primary-color-rgb), 0.1);
+  }
+
+  to {
+    background-color: rgba(var(--primary-color-rgb), 0.3);
+  }
 }
 
 @keyframes winner-pulse {
-   0%, 100% { transform: scale(1); text-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.5); }
-   50% { transform: scale(1.05); text-shadow: 0 0 20px rgba(var(--primary-color-rgb), 0.8); }
- }
+
+  0%,
+  100% {
+    transform: scale(1);
+    text-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.5);
+  }
+
+  50% {
+    transform: scale(1.05);
+    text-shadow: 0 0 20px rgba(var(--primary-color-rgb), 0.8);
+  }
+}
 
 /* 中奖弹窗样式 */
 .winner-popup-box {
   .el-message-box__header {
-    background: linear-gradient(135deg, #f8d568 0%, #ffaa5e 100%);
     padding: 15px;
-    border-bottom: 1px solid #f0c14b;
-    
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    /* 固定4列布局，可以根据需要调整列数 */
+    gap: 5px;
+    background: linear-gradient(135deg, #f8d568 0%, #ff4d4d 100%);
+    border-bottom: none;
+
     .el-message-box__title {
       color: #fff;
-      font-size: 22px;
-      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+      font-size: 26px;
+      text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      font-weight: bold;
+    }
+
+    .el-message-box__headerbtn .el-message-box__close {
+      color: #fff;
+      font-size: 20px;
     }
   }
-  
+
   .el-message-box__content {
-    padding: 20px;
-    background-color: #fff9e6;
+    padding: 5px;
+    background-color: #fff;
   }
-  
+
   .el-message-box__btns {
-    background-color: #fff9e6;
-    border-top: 1px solid #f0c14b;
-    padding: 10px 20px;
-    
+    background-color: #fff;
+    border-top: none;
+    padding: 0 10px 10px;
+
     .el-button--primary {
-      background: linear-gradient(135deg, #f8d568 0%, #ffaa5e 100%);
-      border-color: #f0c14b;
+      background: linear-gradient(135deg, #f8d568 0%, #ff4d4d 100%);
+      border: none;
       color: #fff;
       font-weight: bold;
-      
+      padding: 5px 5px;
+      border-radius: 25px;
+      font-size: 16px;
+
       &:hover {
-        background: linear-gradient(135deg, #ffaa5e 0%, #f8d568 100%);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(255, 77, 77, 0.3);
       }
     }
   }
@@ -1645,31 +1775,199 @@ const loadParticipants = () => {
 .winner-popup-content {
   max-height: 70vh;
   overflow-y: auto;
-  
+
+  h2 {
+    text-align: center;
+    background: linear-gradient(135deg, #f8d568 0%, #ff4d4d 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 28px;
+    margin-bottom: 20px;
+    font-weight: bold;
+  }
+
   .winner-popup-grid {
-    padding: 10px;
+    padding: 15px;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 2px;
-    
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+
     .winner-popup-item {
       transition: all 0.3s ease;
-      height: 100%;
-      padding: 2px;
-      border-radius: 6px;
+      padding: 15px;
+      border-radius: 12px;
       text-align: center;
-      
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+
       &:hover {
-        transform: scale(1.03);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      }
+
+      div:nth-child(1) {
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+
+      div:nth-child(2) {
+        font-size: 14px;
+        color: #606266;
+        margin-bottom: 10px;
+      }
+
+      div:nth-child(3) {
+        font-size: 16px;
+        font-weight: 500;
+        padding: 5px 10px;
+        border-radius: 20px;
+        display: inline-block;
       }
     }
   }
 }
 
- @keyframes spin {
-   to { transform: rotate(360deg); }
- }
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes glow {
+
+  0%,
+  100% {
+    text-shadow: 0 0 10px rgba(248, 213, 104, 0.5), 0 0 20px rgba(255, 77, 77, 0.3);
+  }
+
+  50% {
+    text-shadow: 0 0 20px rgba(248, 213, 104, 0.8), 0 0 30px rgba(255, 77, 77, 0.5);
+  }
+}
+
+@keyframes winner-pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+    text-shadow: 0 0 10px rgba(248, 213, 104, 0.5);
+  }
+
+  50% {
+    transform: scale(1.05);
+    text-shadow: 0 0 20px rgba(248, 213, 104, 0.8);
+  }
+}
+
+@keyframes shine {
+  0% {
+    background-position: -100% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.countdown {
+  animation: float 4s ease-in-out infinite;
+}
+
+.lottery-card,
+.winner-card {
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transform: rotate(45deg);
+    animation: shine 10s linear infinite;
+    pointer-events: none;
+  }
+}
+
+// 响应式样式
+@media screen and (max-width: 1200px) {
+  .lottery-content-wrapper {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .award-selector {
+    max-width: 500px;
+    margin: 0 auto;
+    width: 100%;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .nav-container {
+    padding: 10px 15px;
+    margin: 10px;
+  }
+
+  .logo {
+    font-size: 20px;
+  }
+
+  .lottery-area {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .rolling-name-item {
+    font-size: 22px;
+    height: 80px;
+
+    &.current-name {
+      font-size: 26px;
+    }
+
+    &.winner-highlight {
+      font-size: 28px;
+    }
+  }
+
+  .lottery-controls .start-btn,
+  .lottery-controls .stop-btn {
+    min-width: 100px;
+    height: 45px;
+    font-size: 16px;
+  }
+
+  .winner-popup-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+
+    .winner-popup-item {
+      padding: 10px;
+
+      div:nth-child(1) {
+        font-size: 18px;
+      }
+
+      div:nth-child(2) {
+        font-size: 12px;
+      }
+
+      div:nth-child(3) {
+        font-size: 14px;
+      }
+    }
+  }
+}
 
 @media screen and (max-width: 768px) {
   .el-header {
