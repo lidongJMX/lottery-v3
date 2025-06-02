@@ -199,6 +199,38 @@
       </el-main>
     </el-container>
   </div>
+
+  <!-- 中奖弹窗 -->
+  <el-dialog
+    v-model="showWinnerDialog"
+    title="中奖通知"
+    :width="winnerDialogWidth"
+    custom-class="winner-popup-box"
+    center
+    :custom-style="{
+      'max-width': '90vw',
+      'max-height': '90vh'
+    }"
+  >
+    <div class="winner-popup-content">
+      <h2 style="text-align: center; color: #E6A23C; margin-bottom: 0px;">恭喜以下人员中奖！</h2>
+      <div class="winner-popup-grid">
+        <div 
+          v-for="(winner, index) in lastRoundWinners" 
+          :key="index"
+          class="winner-popup-item"
+          :style="{ backgroundColor: getWinnerColor(winner) + '20' }"
+        >
+          <div style="font-size: 18px; font-weight: bold;">{{ winner.name }}</div>
+          <div style="font-size: 14px; color: #606266;">{{ winner.department || '未知单位' }}</div>
+          <div 
+            style="font-size: 14px; margin-top: 0px;"
+            :style="{ color: getWinnerColor(winner) }"
+          >{{ getWinnerAwardName(winner) }}</div>
+        </div>
+      </div>
+    </div>
+  </el-dialog>
 </template>
 
 <script setup>
@@ -330,6 +362,21 @@ const lastRoundWinners = computed(() => {
   const lastRoundId = Math.max(...winners.value.map(w => w.roundId || 0))
   return winners.value.filter(w => (w.roundId || 0) === lastRoundId)
 })
+
+// 中奖弹窗相关
+const showWinnerDialog = ref(false)
+const dialogWinners = ref([])
+const winnerDialogWidth = ref('400px')
+
+// 获取中奖者颜色
+const getWinnerColor = (winner) => {
+  return winner.color || getAwardColor(winner.award_id) || '#ff4d4d'
+}
+
+// 获取中奖者奖项名称
+const getWinnerAwardName = (winner) => {
+  return winner.award_name || winner.award || awards.value.find(a => a.id === winner.award_id)?.name || '未知奖项'
+}
 // 是否是轮次抽奖模式
 const isRoundLottery = ref(false)
 // 当前轮次抽奖的奖项索引
@@ -735,6 +782,25 @@ const stopLottery = async () => {
     playWinnerSound()
     // 刷新中奖列表
     loadWinners()
+    
+    // 弹窗展示中奖人员信息
+    if (drawnWinners.length > 0) {
+      console.log('显示中奖弹窗', drawnWinners[1])
+      // 设置弹窗数据
+      dialogWinners.value = drawnWinners
+      // 根据中奖人数动态调整弹窗宽度
+      if (drawnWinners.length <= 2) {
+        winnerDialogWidth.value = '400px'
+      } else if (drawnWinners.length <= 4) {
+        winnerDialogWidth.value = '600px'
+      } else if (drawnWinners.length <= 6) {
+        winnerDialogWidth.value = '800px'
+      } else {
+        winnerDialogWidth.value = '1000px'
+      }
+      showWinnerDialog.value = true
+    }
+    
     // 轮次抽奖模式结束处理
     if (isRoundLottery.value) {
       const remainingAwards = awards.value.filter(p => p.remaining_count > 0)
@@ -1537,6 +1603,69 @@ const loadParticipants = () => {
    0%, 100% { transform: scale(1); text-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.5); }
    50% { transform: scale(1.05); text-shadow: 0 0 20px rgba(var(--primary-color-rgb), 0.8); }
  }
+
+/* 中奖弹窗样式 */
+.winner-popup-box {
+  .el-message-box__header {
+    background: linear-gradient(135deg, #f8d568 0%, #ffaa5e 100%);
+    padding: 15px;
+    border-bottom: 1px solid #f0c14b;
+    
+    .el-message-box__title {
+      color: #fff;
+      font-size: 22px;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    }
+  }
+  
+  .el-message-box__content {
+    padding: 20px;
+    background-color: #fff9e6;
+  }
+  
+  .el-message-box__btns {
+    background-color: #fff9e6;
+    border-top: 1px solid #f0c14b;
+    padding: 10px 20px;
+    
+    .el-button--primary {
+      background: linear-gradient(135deg, #f8d568 0%, #ffaa5e 100%);
+      border-color: #f0c14b;
+      color: #fff;
+      font-weight: bold;
+      
+      &:hover {
+        background: linear-gradient(135deg, #ffaa5e 0%, #f8d568 100%);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      }
+    }
+  }
+}
+
+.winner-popup-content {
+  max-height: 70vh;
+  overflow-y: auto;
+  
+  .winner-popup-grid {
+    padding: 10px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 2px;
+    
+    .winner-popup-item {
+      transition: all 0.3s ease;
+      height: 100%;
+      padding: 2px;
+      border-radius: 6px;
+      text-align: center;
+      
+      &:hover {
+        transform: scale(1.03);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+    }
+  }
+}
 
  @keyframes spin {
    to { transform: rotate(360deg); }

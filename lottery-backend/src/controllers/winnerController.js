@@ -31,7 +31,6 @@ const winnerController = {
 
   delete: async (req, res) => {
     try {
-      console.log('删除请求参数:', req.params);
       console.log('查询user_code:', req.params.id, '类型:', typeof req.params.id);
 
       // 根据participant的user_code查找中奖记录
@@ -49,8 +48,6 @@ const winnerController = {
         return res.status(404).json({ message: '中奖记录不存在' });
       }
 
-      // 删除中奖记录
-      await winner.destroy();
 
       // 更新人员状态（删除记录后重新计算）
       console.log('要删除的人员中奖次数', winner.Participant.win_count);
@@ -63,9 +60,11 @@ const winnerController = {
         order: [[{ model: Award }, 'level', 'ASC']],
         attributes: []
       });
+      console.log('要删除的人员最高奖项', maxAwardResult);
       const newHighAwardLevel = maxAwardResult ? maxAwardResult.Award.level : 0;
-      console.log('要删除的人员最高奖项', newHighAwardLevel);
-      
+      console.log('要删除的人员最高奖项', newHighAwardLevel); 
+      // 删除中奖记录
+      await winner.destroy();
       await winner.Participant.update({
         win_count: newWinCount,
         has_won: newWinCount > 0,
