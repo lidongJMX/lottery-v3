@@ -117,7 +117,7 @@
                           </el-option>
                         </el-select>
                         <p v-if="selectedAward" class="award-desc">
-                          <span>{{ selectedAward.count }}名</span>
+                          <!-- <span>{{ selectedAward.count }}名</span> -->
                           <span>{{ selectedAward.description }}</span>
                           <span v-if="selectedAward.draw_count > 1">(每次抽取{{ selectedAward.draw_count }}人)</span>
                         </p>

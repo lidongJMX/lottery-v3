@@ -81,7 +81,7 @@ const participantController = {
         weight: 1,
         has_won: false,
         win_count: 0,
-        high_award_level: 0
+        high_award_level: 100
       }));
 
       // 批量创建或更新参与者

@@ -45,7 +45,7 @@ const Participant = sequelize.define('Participant', {
   high_award_level: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    defaultValue: 0,
+    defaultValue: 100,
     validate: {
       min: 0
     }
