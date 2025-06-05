@@ -370,7 +370,7 @@ const lotteryController = {
       await Winner.destroy({ where: {}, transaction });
       console.log('重置Winner表成功'); // 添加调试日志
       await Participant.update(
-        { has_won: false, win_count: 0, high_award_level: 0 },
+        { has_won: false, win_count: 0, high_award_level: 100 },
         { where: {}, transaction }
       );
       console.log('重置Participant表成功'); // 添加调试日志
