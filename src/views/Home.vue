@@ -414,10 +414,12 @@ const initScrollAnimation = () => {
       const scrollContent = container.querySelector('.winner-scroll')
       if (scrollContent) {
         scrollWidth.value = scrollContent.scrollWidth
+        const containerWidth = container.clientWidth
         
-        // 如果滚动位置超过内容宽度，重置到起始位置
-        if (scrollPosition.value > scrollWidth.value) {
-          scrollPosition.value = -container.clientWidth
+        // 如果滚动位置超过内容宽度，重置到起始位置，实现循环滚动
+        if (scrollPosition.value >= scrollWidth.value) {
+          // 重置到0，实现首尾相接的效果
+          scrollPosition.value = 0
         } else {
           // 否则继续滚动
           scrollPosition.value += 1
@@ -461,16 +463,21 @@ const handleManualScroll = (event) => {
   const deltaX = event.clientX - lastMouseX.value
   scrollPosition.value -= deltaX * 2 // 乘以2使滚动更明显
   
-  // 确保滚动位置不会为负
-  if (scrollPosition.value < 0) {
-    scrollPosition.value = 0
-  }
-  
-  // 循环滚动：如果滚动到末尾，回到开始
+  // 获取滚动内容的宽度
   const container = document.querySelector('.winner-scroll-container')
   const scrollContent = container?.querySelector('.winner-scroll')
-  if (container && scrollContent && scrollPosition.value > scrollContent.scrollWidth) {
-    scrollPosition.value = 0
+  
+  if (container && scrollContent) {
+    const contentWidth = scrollContent.scrollWidth
+    
+    // 循环滚动处理：确保滚动位置在有效范围内
+    if (scrollPosition.value < 0) {
+      // 如果滚动到最左侧之前，跳转到最右侧
+      scrollPosition.value = contentWidth - 1
+    } else if (scrollPosition.value >= contentWidth) {
+      // 如果滚动到最右侧之后，跳转到最左侧
+      scrollPosition.value = 0
+    }
   }
   
   lastMouseX.value = event.clientX
@@ -503,14 +510,10 @@ const initWinnerListScroll = () => {
         const scrollHeight = winnerList.scrollHeight
         const clientHeight = winnerList.clientHeight
         
-        // 如果已经滚动到底部，平滑回到顶部
+        // 实现循环滚动效果
         if (scrollTop + clientHeight >= scrollHeight - 10) {
-          // 逐渐减速到0，然后重置到顶部
-          if (scrollTop > 0) {
-            winnerList.scrollTop = Math.max(0, scrollTop - scrollSpeed * 2)
-          } else {
-            winnerList.scrollTop = 0
-          }
+          // 当滚动到底部时，立即回到顶部，实现循环效果
+          winnerList.scrollTop = 0
         } else {
           // 连续向下滚动
           winnerList.scrollTop += scrollSpeed
