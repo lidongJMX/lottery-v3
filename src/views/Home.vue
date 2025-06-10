@@ -20,61 +20,74 @@
             </span>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item>
-                  <router-link to="/awards">
-                    <el-icon>
-                      <Trophy />
-                    </el-icon>
-                    <span>奖项管理</span>
-                  </router-link>
-                </el-dropdown-item>
-                <el-dropdown-item>
-                  <router-link to="/participants">
-                    <el-icon>
-                      <User />
-                    </el-icon>
-                    <span>人员管理</span>
-                  </router-link>
-                </el-dropdown-item>
-                <el-dropdown-item @click="exportToExcel">
-                  <span>导出中奖名单</span>
-                </el-dropdown-item>
-                <el-dropdown-item @click="resetLotteryData">
-                  <el-icon>
-                    <Refresh />
-                  </el-icon>
-                  <span>重置中奖数据</span>
-                </el-dropdown-item>
-                <el-dropdown-item @click="clearAllData">
-                  <el-icon>
-                    <Delete />
-                  </el-icon>
-                  <span>清空所有数据</span>
-                </el-dropdown-item>
-                <el-dropdown-item @click="openBackgroundSelector">
-                  <el-icon>
-                    <Picture />
-                  </el-icon>
-                  <span>选择背景图片</span>
-                </el-dropdown-item>
-                <el-dropdown-item @click="openDateTimePicker">
-                  <el-icon>
-                    <Timer />
-                  </el-icon>
-                  <span>设置抽奖时间</span>
-                </el-dropdown-item>
+                <!-- 未登录用户可见的功能 -->
                 <el-dropdown-item @click="toggleFullScreen">
                   <el-icon>
                     <FullScreen />
                   </el-icon>
                   <span>{{ isFullScreen ? '退出全屏' : '进入全屏' }}</span>
                 </el-dropdown-item>
-                <el-dropdown-item @click="logout">
+                
+                <!-- 登录入口 -->
+                <el-dropdown-item v-if="!isLoggedIn" @click="goToLogin">
                   <el-icon>
-                    <SwitchButton />
+                    <User />
                   </el-icon>
-                  <span>退出登录</span>
+                  <span>管理员登录</span>
                 </el-dropdown-item>
+                
+                <!-- 管理员可见的功能 -->
+                <template v-if="isLoggedIn">
+                  <el-dropdown-item>
+                    <router-link to="/awards">
+                      <el-icon>
+                        <Trophy />
+                      </el-icon>
+                      <span>奖项管理</span>
+                    </router-link>
+                  </el-dropdown-item>
+                  <el-dropdown-item>
+                    <router-link to="/participants">
+                      <el-icon>
+                        <User />
+                      </el-icon>
+                      <span>人员管理</span>
+                    </router-link>
+                  </el-dropdown-item>
+                  <el-dropdown-item @click="exportToExcel">
+                    <span>导出中奖名单</span>
+                  </el-dropdown-item>
+                  <el-dropdown-item @click="resetLotteryData">
+                    <el-icon>
+                      <Refresh />
+                    </el-icon>
+                    <span>重置中奖数据</span>
+                  </el-dropdown-item>
+                  <el-dropdown-item @click="clearAllData">
+                    <el-icon>
+                      <Delete />
+                    </el-icon>
+                    <span>清空所有数据</span>
+                  </el-dropdown-item>
+                  <el-dropdown-item @click="openBackgroundSelector">
+                    <el-icon>
+                      <Picture />
+                    </el-icon>
+                    <span>选择背景图片</span>
+                  </el-dropdown-item>
+                  <el-dropdown-item @click="openDateTimePicker">
+                    <el-icon>
+                      <Timer />
+                    </el-icon>
+                    <span>设置抽奖时间</span>
+                  </el-dropdown-item>
+                  <el-dropdown-item @click="logout">
+                    <el-icon>
+                      <SwitchButton />
+                    </el-icon>
+                    <span>退出登录</span>
+                  </el-dropdown-item>
+                </template>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -265,6 +278,19 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import * as XLSX from 'xlsx'
 import dayjs from 'dayjs'
 
+// 添加登录状态检查
+const isLoggedIn = computed(() => {
+  return !!localStorage.getItem('token')
+})
+
+// 定义路由
+const router = useRouter()
+
+// 跳转到登录页面
+const goToLogin = () => {
+  router.push('/login')
+}
+
 // 背景图片相关
 const backgroundOptions = [
   { name: '默认背景', path: '/src/assets/background.png' },
@@ -346,7 +372,7 @@ const getLevelText = (level) => {
   return texts[level - 1] || `${level}等奖`
 }
 
-const router = useRouter()
+// router已在上方定义
 const countdownDate = ref(Date.now() + 1000 * 60 * 60 * 24)
 const isDrawing = ref(false)
 const animationId = ref(null)
@@ -1070,17 +1096,9 @@ const exportToExcel = async () => {
 };
 const logout = async () => {
   try {
-    const token = localStorage.getItem('token');
-    if (token) {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-    }
     localStorage.removeItem('token');
-    window.location.href = '/login';
+    ElMessage.success('已退出登录');
+    router.push('/');
   } catch (error) {
     console.error('退出登录失败:', error);
   }

@@ -17,7 +17,8 @@ const routes = [
   {
     path: '/awards',
     name: 'AwardManagement',
-    component: AwardManagement
+    component: AwardManagement,
+    meta: { requiresAuth: true }
   },
   {
     path: '/lottery',
@@ -28,12 +29,14 @@ const routes = [
   {
     path: '/participants',
     name: 'Participants',
-    component: () => import('@/views/Participants.vue')
+    component: () => import('@/views/Participants.vue'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/export',
     name: 'Export',
-    component: () => import('@/views/Export.vue')
+    component: () => import('@/views/Export.vue'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/lotter-demo',
@@ -45,6 +48,18 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+// 全局前置守卫
+router.beforeEach((to, from, next) => {
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+  const isAuthenticated = localStorage.getItem('token')
+
+  if (requiresAuth && !isAuthenticated) {
+    next('/login')
+  } else {
+    next()
+  }
 })
 
 export default router
