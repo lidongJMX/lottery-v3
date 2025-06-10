@@ -7,11 +7,14 @@
   box-sizing: border-box;
 }
 
-// 主题颜色
+// 主题颜色 - 年会氛围
 :root {
-  --primary-color: #ff4d4d;
-  --primary-color-rgb: 255, 77, 77;
-  --secondary-color: #ffd700;
+  --primary-color: #e74c3c; // 喜庆红色
+  --primary-color-rgb: 231, 76, 60;
+  --secondary-color: #f1c40f; // 金色
+  --secondary-color-rgb: 241, 196, 15;
+  --accent-color: #3498db; // 点缀蓝色
+  --accent-color-rgb: 52, 152, 219;
   --text-color: #333;
   --background-color: #fff;
 }

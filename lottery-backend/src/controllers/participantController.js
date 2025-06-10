@@ -49,18 +49,18 @@ const participantController = {
 
       res.json(rows);
     } catch (error) {
-      await t.rollback();
-      console.error('导入参与者数据错误:', error);
+      console.error('获取参与者列表错误:', error);
       res.status(500).json({ 
         success: false, 
-        message: '导入失败：' + (error.message || '服务器错误')
+        message: '获取参与者列表失败：' + (error.message || '服务器错误')
       });
     }
   },
 
   import: async (req, res) => {
-    const t = await sequelize.transaction();
+    let t;
     try {
+      t = await sequelize.transaction();
       const participants = req.body;
       console.log('导入数据:', participants);
       if (!Array.isArray(participants) || participants.length === 0) {
@@ -104,7 +104,7 @@ const participantController = {
         }))
       });
     } catch (error) {
-      await t.rollback();
+      if (t) await t.rollback();
       console.error('导入参与者数据错误:', error);
       res.status(500).json({ 
         success: false, 

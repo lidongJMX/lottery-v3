@@ -2,6 +2,8 @@ const Winner = require('../models/Winner');
 const Participant = require('../models/Participant');
 const Award = require('../models/Award');
 const ExcelJS = require('exceljs');// 添加这行来引入ExcelJS
+const sequelize = require('../config/database'); // 添加这行来引入sequelize
+
 const winnerController = {
   getAll: async (req, res) => {
     try {
@@ -30,8 +32,12 @@ const winnerController = {
   },
 
   delete: async (req, res) => {
+    let transaction;
     try {
       console.log('查询user_code:', req.params.id, '类型:', typeof req.params.id);
+
+      // 开始事务
+      transaction = await sequelize.transaction();
 
       // 根据participant的user_code查找中奖记录
       const winner = await Winner.findOne({
@@ -41,7 +47,8 @@ const winnerController = {
             where: { user_code: req.params.id }
           },
           { model: Award }
-        ]
+        ],
+        transaction
       });
       console.log('根据user_code查询结果:', winner);
       if (!winner) {
@@ -58,26 +65,33 @@ const winnerController = {
         where: { participant_id: winner.participant_id },
         include: [{ model: Award, attributes: ['level'] }],
         order: [[{ model: Award }, 'level', 'ASC']],
-        attributes: []
+        attributes: [],
+        transaction
       });
       console.log('要删除的人员最高奖项', maxAwardResult);
       const newHighAwardLevel = maxAwardResult ? maxAwardResult.Award.level : 0;
       console.log('要删除的人员最高奖项', newHighAwardLevel); 
       // 删除中奖记录
-      await winner.destroy();
+      await winner.destroy({ transaction });
       await winner.Participant.update({
         win_count: newWinCount,
         has_won: newWinCount > 0,
         high_award_level: newHighAwardLevel
-      });
+      }, { transaction });
       console.log('删除后人员最高奖项', newHighAwardLevel);
       // 更新奖项剩余数量
       await winner.Award.update({
         remaining_count: winner.Award.remaining_count + 1
-      });
+      }, { transaction });
+
+      // 提交事务
+      await transaction.commit();
 
       res.json({ message: '删除成功' });
     } catch (error) {
+      // 回滚事务
+      if (transaction) await transaction.rollback();
+      console.error('删除中奖记录失败:', error);
       res.status(500).json({ message: '服务器错误' });
     }
   },

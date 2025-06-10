@@ -363,10 +363,10 @@ const lotteryController = {
     }
   },
   reset: async (req, res) => {
-    const transaction = await sequelize.transaction();
     console.log('进入reset函数'); // 添加调试日志
+    let transaction;
     try {
-      const transaction = await sequelize.transaction();
+      transaction = await sequelize.transaction();
       await Winner.destroy({ where: {}, transaction });
       console.log('重置Winner表成功'); // 添加调试日志
       await Participant.update(
@@ -388,15 +388,16 @@ const lotteryController = {
       await transaction.commit();
       res.json({ message: '重置成功' });
     } catch (error) {
-      await transaction.rollback();
+      if (transaction) await transaction.rollback();
       console.error('重置数据库失败:', error);
       res.status(500).json({ message: '服务器错误' });
     }
   },
 
   clearAllData: async (req, res) => {
-    const transaction = await sequelize.transaction();
+    let transaction;
     try {
+      transaction = await sequelize.transaction();
       await Winner.destroy({ where: {}, transaction });
       console.log('清除Winner表成功'); // 添加调试日志
       await Participant.destroy({ where: {}, transaction });
@@ -414,7 +415,7 @@ const lotteryController = {
       await transaction.commit();
       res.json({ message: '清除成功' });
     } catch (error) {
-      await transaction.rollback();
+      if (transaction) await transaction.rollback();
       console.error('清除数据库失败:', error);
       res.status(500).json({ message: '服务器错误' });
     }

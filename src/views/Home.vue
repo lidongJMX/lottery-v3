@@ -14,7 +14,6 @@
           <!-- 将菜单项放入下拉菜单 -->
           <el-dropdown trigger="click" class="nav-dropdown">
             <span class="el-dropdown-link">
-              <!-- <el-button type="primary" icon="el-icon-menu" ></el-button> -->
               <el-icon>
                 <More />
               </el-icon>
@@ -84,21 +83,15 @@
 
       <el-main>
         <div class="content">
-          <!-- <div class="header"> -->
-          <!-- <h1 class="title">2024年公司年会抽奖系统</h1> -->
           <div class="countdown">
             <span>距离抽奖开始还有：</span>
             <el-countdown :value="countdownDate" />
           </div>
-          <!-- </div> -->
 
           <div class="lottery-area">
             <div class="lottery-container">
-              <el-card class="lottery-card">
+              <div class="lottery-card">
                 <div class="lottery-content">
-                  <!-- <div class="lottery-title">
-                  </div> -->
-
                   <!-- 中央抽奖区 -->
                   <main class="lottery-main">
                     <!-- 添加加载状态和错误提示 -->
@@ -135,7 +128,6 @@
                           </el-option>
                         </el-select>
                         <p v-if="selectedAward" class="award-desc">
-                          <!-- <span>{{ selectedAward.count }}名</span> -->
                           <span>{{ selectedAward.description }}</span>
                           <span v-if="selectedAward.draw_count > 1">(每次抽取{{ selectedAward.draw_count }}人)</span>
                         </p>
@@ -172,11 +164,11 @@
                     </div>
                   </main>
                 </div>
-              </el-card>
+              </div>
             </div>
 
             <div class="winner-container">
-              <el-card class="winner-card">
+              <div class="winner-card">
                 <div class="winner-content">
                   <div class="winner-title">
                     <el-icon :size="40" class="winner-icon">
@@ -184,13 +176,14 @@
                     </el-icon>
                     <h2>中奖名单</h2>
                   </div>
-                  <div class="winner-list" style="max-height: 400px; overflow-y: auto;">
-                    <div v-for="(winner, index) in lastRoundWinners" :key="index" class="winner-item"
-                      :style="{ backgroundColor: winner.color + '10' }">
+                  <div class="winner-list" ref="winnerListRef" 
+                       @mouseenter="pauseWinnerListScroll" 
+                       @mouseleave="resumeWinnerListScroll">
+                    <div v-for="(winner, index) in lastRoundWinners" :key="index" class="winner-item">
                       <span class="winner-name">{{ winner.user_code }}</span>
                       <span class="winner-name">{{ winner.name }}</span>
                       <span class="winner-name">{{ winner.department }}</span>
-                      <span class="winner-award" :style="{ color: winner.color, backgroundColor: winner.color + '20' }">
+                      <span class="winner-award" :style="{ color: winner.color, backgroundColor: winner.color + '10' }">
                         {{ winner.award_name }}
                       </span>
                       <el-button type="danger" size="small" circle @click.stop="deleteWinner(winner)"
@@ -202,12 +195,32 @@
                     </div>
                   </div>
                 </div>
-              </el-card>
+              </div>
             </div>
           </div>
         </div>
       </el-main>
     </el-container>
+    
+    <!-- 底部滚动中奖人员区域 -->
+    <div class="winner-scroll-container"
+         @mouseenter="pauseScroll"
+         @mouseleave="resumeScroll"
+         @mousedown="startManualScroll"
+         @mouseup="endManualScroll"
+         @mousemove="handleManualScroll">
+      <div class="winner-scroll-wrapper">
+        <div class="winner-scroll" :style="{ transform: `translateX(${-scrollPosition}px)` }">
+          <div v-for="(winner, index) in allWinners" :key="index" class="winner-scroll-item">
+            <span class="winner-name">{{ winner.name }}</span>
+            <span class="winner-department">{{ winner.department }}</span>
+            <span class="winner-award" :style="{ color: winner.color, backgroundColor: winner.color + '10' }">
+              {{ winner.award_name }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- 中奖弹窗 -->
@@ -361,6 +374,170 @@ const lastRoundWinners = computed(() => {
   return winners.value.filter(w => (w.roundId || 0) === lastRoundId)
 })
 
+// 右侧中奖名单自动滚动相关数据
+const winnerListRef = ref(null)
+const winnerListScrollInterval = ref(null)
+const isWinnerListScrollPaused = ref(false)
+
+// 所有中奖者（用于底部滚动显示）
+const allWinners = computed(() => {
+  return winners.value.map(winner => ({
+    ...winner,
+    color: getWinnerColor(winner),
+    award_name: getWinnerAwardName(winner)
+  }))
+})
+
+// 底部滚动中奖人员相关数据
+const scrollPosition = ref(0)
+const scrollWidth = ref(0)
+const scrollInterval = ref(null)
+const isScrollPaused = ref(false)
+const isManualScrolling = ref(false)
+const lastMouseX = ref(0)
+
+// 初始化底部滚动动画
+const initScrollAnimation = () => {
+  // 清除可能存在的旧定时器
+  if (scrollInterval.value) {
+    clearInterval(scrollInterval.value)
+  }
+  
+  // 设置定时器，每50毫秒移动1像素
+  scrollInterval.value = setInterval(() => {
+    // 如果暂停或正在手动滚动，则不执行自动滚动
+    if (isScrollPaused.value || isManualScrolling.value) return
+    
+    // 获取滚动容器的宽度
+    const container = document.querySelector('.winner-scroll-container')
+    if (container) {
+      const scrollContent = container.querySelector('.winner-scroll')
+      if (scrollContent) {
+        scrollWidth.value = scrollContent.scrollWidth
+        
+        // 如果滚动位置超过内容宽度，重置到起始位置
+        if (scrollPosition.value > scrollWidth.value) {
+          scrollPosition.value = -container.clientWidth
+        } else {
+          // 否则继续滚动
+          scrollPosition.value += 1
+        }
+      }
+    }
+  }, 50)
+}
+
+// 暂停滚动
+const pauseScroll = () => {
+  isScrollPaused.value = true
+}
+
+// 恢复滚动
+const resumeScroll = () => {
+  if (!isManualScrolling.value) {
+    isScrollPaused.value = false
+  }
+}
+
+// 开始手动滚动
+const startManualScroll = (event) => {
+  isManualScrolling.value = true
+  lastMouseX.value = event.clientX
+}
+
+// 结束手动滚动
+const endManualScroll = () => {
+  isManualScrolling.value = false
+  // 如果鼠标不在容器上，恢复自动滚动
+  if (!isScrollPaused.value) {
+    resumeScroll()
+  }
+}
+
+// 处理手动滚动
+const handleManualScroll = (event) => {
+  if (!isManualScrolling.value) return
+  
+  const deltaX = event.clientX - lastMouseX.value
+  scrollPosition.value -= deltaX * 2 // 乘以2使滚动更明显
+  
+  // 确保滚动位置不会为负
+  if (scrollPosition.value < 0) {
+    scrollPosition.value = 0
+  }
+  
+  // 循环滚动：如果滚动到末尾，回到开始
+  const container = document.querySelector('.winner-scroll-container')
+  const scrollContent = container?.querySelector('.winner-scroll')
+  if (container && scrollContent && scrollPosition.value > scrollContent.scrollWidth) {
+    scrollPosition.value = 0
+  }
+  
+  lastMouseX.value = event.clientX
+}
+
+// 初始化右侧中奖名单自动滚动
+const initWinnerListScroll = () => {
+  // 清除可能存在的旧定时器
+  if (winnerListScrollInterval.value) {
+    clearInterval(winnerListScrollInterval.value)
+    winnerListScrollInterval.value = null
+  }
+  
+  // 使用requestAnimationFrame实现连续平滑滚动
+  let lastTime = 0
+  const scrollSpeed = 0.5 // 每帧滚动像素数，可调整滚动速度
+  
+  const smoothScroll = (currentTime) => {
+    // 如果暂停滚动，继续下一帧但不执行滚动
+    if (isWinnerListScrollPaused.value) {
+      winnerListScrollInterval.value = requestAnimationFrame(smoothScroll)
+      return
+    }
+    
+    const winnerList = winnerListRef.value
+    if (winnerList && lastRoundWinners.value.length > 0) {
+      // 控制滚动频率，避免过快
+      if (currentTime - lastTime >= 16) { // 约60fps
+        const scrollTop = winnerList.scrollTop
+        const scrollHeight = winnerList.scrollHeight
+        const clientHeight = winnerList.clientHeight
+        
+        // 如果已经滚动到底部，平滑回到顶部
+        if (scrollTop + clientHeight >= scrollHeight - 10) {
+          // 逐渐减速到0，然后重置到顶部
+          if (scrollTop > 0) {
+            winnerList.scrollTop = Math.max(0, scrollTop - scrollSpeed * 2)
+          } else {
+            winnerList.scrollTop = 0
+          }
+        } else {
+          // 连续向下滚动
+          winnerList.scrollTop += scrollSpeed
+        }
+        
+        lastTime = currentTime
+      }
+    }
+    
+    // 继续下一帧动画
+    winnerListScrollInterval.value = requestAnimationFrame(smoothScroll)
+  }
+  
+  // 开始动画循环
+  winnerListScrollInterval.value = requestAnimationFrame(smoothScroll)
+}
+
+// 暂停右侧中奖名单滚动
+const pauseWinnerListScroll = () => {
+  isWinnerListScrollPaused.value = true
+}
+
+// 恢复右侧中奖名单滚动
+const resumeWinnerListScroll = () => {
+  isWinnerListScrollPaused.value = false
+}
+
 // 中奖弹窗相关
 const showWinnerDialog = ref(false)
 const dialogWinners = ref([])
@@ -390,7 +567,7 @@ const centerIndex = computed(() => {
   return Math.floor((rollingOffset.value + centerY) / itemHeight.value)
 })
 const itemHeight = ref(100) // 每个名字项的高度，匹配CSS中的height: 100px
-const scrollSpeed = ref(8) // 滚动速度
+const scrollSpeed = ref(20) // 滚动速度
 const isStopping = ref(false) // 是否正在停止
 
 // 加载中奖者列表
@@ -487,6 +664,13 @@ onMounted(() => {
 
   loadawards()
   loadWinners()
+  
+  // 初始化底部滚动中奖人员动画
+  initScrollAnimation()
+  
+  // 初始化右侧中奖名单自动滚动
+  initWinnerListScroll()
+  
   // 获取未中奖用户+50%的中奖用户
   fetch('/api/participants/lottery')
     .then(res => {
@@ -508,6 +692,18 @@ onMounted(() => {
 // 组件卸载时移除监听器
 onUnmounted(() => {
   document.removeEventListener('fullscreenchange', handleFullScreenChange)
+  
+  // 清理底部滚动定时器
+  if (scrollInterval.value) {
+    clearInterval(scrollInterval.value)
+    scrollInterval.value = null
+  }
+  
+  // 清理右侧中奖名单自动滚动动画
+  if (winnerListScrollInterval.value) {
+    cancelAnimationFrame(winnerListScrollInterval.value)
+    winnerListScrollInterval.value = null
+  }
 })
 
 //     .catch(error => {
@@ -772,8 +968,14 @@ const stopLottery = async () => {
     // 更新当前显示的中奖者
     if (drawnWinners.length === 1) {
       currentRollingName.value = { name: drawnWinners[0].name }
+      // 将displayNames替换为中奖者，使rolling-container显示中奖者
+      displayNames.value = [{ name: drawnWinners[0].name }]
+      rollingOffset.value = 0
     } else {
       currentRollingName.value = { name: `${drawnWinners.length}人中奖` }
+      // 多人中奖时，显示所有中奖者
+      displayNames.value = drawnWinners.map(winner => ({ name: winner.name }))
+      rollingOffset.value = 0
     }
 
     // 播放中奖音效
@@ -1049,11 +1251,10 @@ const loadParticipants = () => {
 }
 
 .el-header {
-  background: transparent;
-  color: white;
+  background-color: rgba(255, 255, 255, 0.95);
+  color: var(--text-color);
   padding: 0 20px;
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(var(--primary-color-rgb), 0.1);
 
   .nav-container {
     display: flex;
@@ -1062,12 +1263,9 @@ const loadParticipants = () => {
     height: 100%;
 
     .logo {
-      font-size: 24px;
+      font-size: 22px;
       font-weight: bold;
-      background: linear-gradient(135deg, #f8d568 0%, #ff4d4d 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      text-shadow: 0 2px 10px rgba(255, 77, 77, 0.3);
+      color: var(--primary-color);
     }
 
     .nav-menu {
@@ -1101,21 +1299,19 @@ const loadParticipants = () => {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 40px;
-        height: 40px;
-        border-radius: 10%;
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(5px);
-        transition: all 0.3s ease;
+        width: 36px;
+        height: 36px;
+        border-radius: 4px;
+        background-color: rgba(var(--primary-color-rgb), 0.1);
+        transition: all 0.2s ease;
 
         &:hover {
-          background: rgba(255, 255, 255, 0.3);
-          transform: scale(1.05);
+          background-color: rgba(var(--primary-color-rgb), 0.2);
         }
 
         .el-icon {
-          font-size: 20px;
-          color: #fff;
+          font-size: 18px;
+          color: var(--primary-color);
         }
       }
     }
@@ -1125,10 +1321,9 @@ const loadParticipants = () => {
 // 背景选择器样式
 :deep(.background-selector) {
   padding: 15px;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: #fff;
+  border-radius: 4px;
+  border: 1px solid rgba(var(--primary-color-rgb), 0.1);
 
   h3 {
     text-align: center;
@@ -1146,23 +1341,22 @@ const loadParticipants = () => {
     .bg-option {
       width: 120px;
       height: 80px;
-      border-radius: 8px;
+      border-radius: 4px;
       background-size: cover;
       background-position: center;
       cursor: pointer;
       position: relative;
-      border: 2px solid transparent;
-      transition: all 0.3s ease;
+      border: 1px solid rgba(var(--primary-color-rgb), 0.1);
+      transition: all 0.2s ease;
       overflow: hidden;
 
       &:hover {
-        transform: scale(1.05);
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        border-color: rgba(var(--primary-color-rgb), 0.3);
       }
 
       &.active {
         border-color: var(--primary-color);
-        box-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.5);
+        border-width: 2px;
       }
 
       span {
@@ -1203,19 +1397,22 @@ const loadParticipants = () => {
   position: relative;
 
   .title {
-    font-size: 3rem;
+    font-size: 2.8rem;
     margin-bottom: 20px;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-    background: linear-gradient(45deg, #ffd700, #ff4d4d);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: glow 2s ease-in-out infinite;
+    color: var(--primary-color);
+    font-weight: bold;
   }
 
   .countdown {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     margin-top: 5px;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    color: var(--text-color);
+    background-color: #fff;
+    padding: 8px 15px;
+    border-radius: 4px;
+    display: inline-block;
+    border: 1px solid rgba(var(--primary-color-rgb), 0.1);
+    box-shadow: var(--box-shadow, 0 1px 3px 0 rgba(0, 0, 0, 0.08));
   }
 }
 
@@ -1238,19 +1435,13 @@ const loadParticipants = () => {
   max-width: 1200px;
 
   .lottery-card {
-    border-radius: 16px;
+    border-radius: 4px;
     overflow: hidden;
-    backdrop-filter: blur(20px);
-    background-color: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
+    background-color: #fff;
+    border: 1px solid rgba(var(--primary-color-rgb), 0.1);
+    box-shadow: var(--box-shadow, 0 1px 3px 0 rgba(0, 0, 0, 0.08));
+    transition: all 0.2s ease;
     height: 100%;
-
-    &:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
-    }
 
     .lottery-content {
       padding: 20px;
@@ -1384,9 +1575,9 @@ const loadParticipants = () => {
             margin-bottom: 10px;
 
             :deep(.el-input__inner) {
-              font-size: 1.2rem;
-              color: var(--primary-color);
-              text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+              font-size: 1.1rem;
+              color: var(--text-color);
+              border-radius: 4px;
             }
           }
 
@@ -1402,9 +1593,9 @@ const loadParticipants = () => {
           height: 300px;
           width: 100%;
           overflow: hidden;
-          border-radius: 12px;
-          background: rgba(0, 0, 0, 0.1);
-          box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
+          border-radius: 4px;
+          background: rgba(var(--primary-color-rgb), 0.03);
+          border: 1px solid rgba(var(--primary-color-rgb), 0.1);
 
           &::before,
           &::after {
@@ -1419,12 +1610,12 @@ const loadParticipants = () => {
 
           &::before {
             top: 0;
-            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.2), transparent);
+            background: linear-gradient(to bottom, rgba(var(--primary-color-rgb), 0.1), transparent);
           }
 
           &::after {
             bottom: 0;
-            background: linear-gradient(to top, rgba(236, 66, 66, 0.363), transparent);
+            background: linear-gradient(to top, rgba(var(--primary-color-rgb), 0.1), transparent);
           }
 
           .rolling-container {
@@ -1443,35 +1634,30 @@ const loadParticipants = () => {
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 28px;
+            font-size: 26px;
             font-weight: bold;
-            color: rgba(255, 255, 255, 0.7);
-            transition: all 0.3s ease;
-            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            color: var(--text-color);
+            transition: all 0.2s ease;
 
             &.current-name {
-              color: #ffffff;
-              font-size: 32px;
-              text-shadow: 0 0 10px rgba(248, 213, 104, 0.8);
+              color: var(--primary-color);
+              font-size: 30px;
             }
 
             &.winner-highlight {
               color: var(--secondary-color);
               animation: winner-pulse 2s infinite;
-              text-shadow: 0 0 20px rgba(255, 215, 0, 0.8),
-                2px 2px 8px rgba(0, 0, 0, 0.5);
-              background: linear-gradient(135deg,
-                  rgba(255, 215, 0, 0.2) 0%,
-                  rgba(255, 77, 77, 0.2) 100%);
-              border: 2px solid rgba(255, 215, 0, 0.3);
-              border-radius: 10px;
+              background-color: rgba(var(--primary-color-rgb), 0.05);
+              border: 1px solid var(--secondary-color);
+              border-radius: 4px;
               margin: 0 20px;
+              padding: 0 15px;
             }
           }
         }
 
         .lottery-controls {
-          margin-top: 60px;
+          margin-top: 40px;
           display: flex;
           justify-content: center;
           gap: 20px;
@@ -1479,25 +1665,25 @@ const loadParticipants = () => {
           .start-btn,
           .stop-btn {
             min-width: 120px;
-            height: 50px;
-            border-radius: 25px;
-            font-size: 18px;
+            height: 46px;
+            border-radius: 4px;
+            font-size: 16px;
             font-weight: bold;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
 
             &:hover:not(:disabled) {
-              transform: translateY(-3px);
-              box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+              opacity: 0.9;
             }
           }
 
           .start-btn {
-            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+            background-color: var(--secondary-color);
             border: none;
+            color: #333;
           }
 
           .stop-btn {
-            background: linear-gradient(135deg, #F44336 0%, #C62828 100%);
+            background-color: var(--primary-color);
             border: none;
           }
 
@@ -1526,13 +1712,12 @@ const loadParticipants = () => {
   max-width: 400px;
 
   .winner-card {
-    border-radius: 16px;
+    border-radius: 4px;
     overflow: hidden;
-    backdrop-filter: blur(20px);
-    background-color: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
+    background-color: #fff;
+    border: 1px solid rgba(var(--primary-color-rgb), 0.1);
+    box-shadow: var(--box-shadow, 0 1px 3px 0 rgba(0, 0, 0, 0.08));
+    transition: all 0.2s ease;
     height: 100%;
 
     .winner-content {
@@ -1548,17 +1733,15 @@ const loadParticipants = () => {
       margin-bottom: 20px;
 
       .winner-icon {
-        color: #f8d568;
+        color: var(--secondary-color);
         margin-right: 15px;
-        filter: drop-shadow(0 0 5px rgba(248, 213, 104, 0.5));
       }
 
       h2 {
-        font-size: 24px;
-        background: linear-gradient(135deg, #f8d568 0%, #ff4d4d 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        font-size: 22px;
+        color: var(--primary-color);
         margin: 0;
+        font-weight: bold;
       }
     }
 
@@ -1566,6 +1749,9 @@ const loadParticipants = () => {
       flex: 1;
       overflow-y: auto;
       padding: 5px;
+      scroll-behavior: smooth; /* 添加平滑滚动效果 */
+      max-height: 400px;
+      position: relative;
 
       &::-webkit-scrollbar {
         width: 6px;
@@ -1577,8 +1763,12 @@ const loadParticipants = () => {
       }
 
       &::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.3);
+        background: rgba(var(--primary-color-rgb), 0.2);
         border-radius: 3px;
+      }
+      
+      &::-webkit-scrollbar-thumb:hover {
+        background: rgba(var(--primary-color-rgb), 0.4);
       }
 
       .winner-item {
@@ -1586,44 +1776,67 @@ const loadParticipants = () => {
         justify-content: space-between;
         align-items: center;
         padding: 10px 15px;
-        margin-bottom: 10px;
-        border-radius: 8px;
+        margin-bottom: 8px;
+        border-radius: 4px;
         transition: all 0.3s ease;
         position: relative;
-        backdrop-filter: blur(5px);
+        background-color: rgba(var(--primary-color-rgb), 0.03);
+        border: 1px solid rgba(var(--primary-color-rgb), 0.1);
+        animation: fadeIn 0.5s ease-out;
+        transform-origin: center;
+        
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
 
         &:hover {
-          transform: translateX(5px);
-          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+          border-color: var(--primary-color);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+          background-color: rgba(var(--primary-color-rgb), 0.05);
 
           .delete-winner-btn {
             opacity: 1;
+          }
+          
+          .winner-name, .winner-award {
+            color: var(--primary-color);
           }
         }
 
         .winner-name {
           font-size: 14px;
           font-weight: 500;
-          color: rgba(255, 255, 255, 0.9);
+          color: var(--text-color);
         }
 
         .winner-award {
-          font-size: 14px;
+          font-size: 13px;
           font-weight: bold;
-          padding: 4px 12px;
-          border-radius: 20px;
+          padding: 3px 8px;
+          border-radius: 4px;
+          background-color: var(--primary-color);
+          color: #fff;
         }
 
         .delete-winner-btn {
           opacity: 0;
-          transition: opacity 0.3s ease;
+          transition: opacity 0.2s ease;
           position: absolute;
           right: 10px;
           top: 50%;
           transform: translateY(-50%);
-          width: 28px;
-          height: 28px;
+          width: 24px;
+          height: 24px;
           padding: 0;
+          color: var(--primary-color);
         }
       }
     }
@@ -1656,14 +1869,13 @@ const loadParticipants = () => {
 }
 
 @keyframes glow {
-
   0%,
   100% {
-    text-shadow: 0 0 10px #ffd700, 0 0 20px #ff4d4d;
+    text-shadow: 0 0 5px rgba(var(--secondary-color-rgb), 0.5);
   }
 
   50% {
-    text-shadow: 0 0 20px #ff4d4d, 0 0 30px #ffd700;
+    text-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.5);
   }
 }
 
@@ -1708,65 +1920,58 @@ const loadParticipants = () => {
 }
 
 @keyframes winner-pulse {
-
   0%,
   100% {
     transform: scale(1);
-    text-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.5);
+    opacity: 0.9;
   }
 
   50% {
-    transform: scale(1.05);
-    text-shadow: 0 0 20px rgba(var(--primary-color-rgb), 0.8);
+    transform: scale(1.03);
+    opacity: 1;
   }
 }
 
-/* 中奖弹窗样式 */
+/* 中奖弹窗样式 - 扁平化设计 */
 .winner-popup-box {
   .el-message-box__header {
-    padding: 15px;
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    /* 固定4列布局，可以根据需要调整列数 */
-    gap: 5px;
-    background: linear-gradient(135deg, #f8d568 0%, #ff4d4d 100%);
+    padding: 12px 15px;
+    background-color: var(--primary-color);
     border-bottom: none;
 
     .el-message-box__title {
       color: #fff;
-      font-size: 26px;
-      text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-      font-weight: bold;
+      font-size: 18px;
+      font-weight: 500;
     }
 
     .el-message-box__headerbtn .el-message-box__close {
       color: #fff;
-      font-size: 20px;
+      font-size: 16px;
     }
   }
 
   .el-message-box__content {
-    padding: 5px;
+    padding: 15px;
     background-color: #fff;
   }
 
   .el-message-box__btns {
     background-color: #fff;
     border-top: none;
-    padding: 0 10px 10px;
+    padding: 0 15px 15px;
 
     .el-button--primary {
-      background: linear-gradient(135deg, #f8d568 0%, #ff4d4d 100%);
+      background-color: var(--primary-color);
       border: none;
       color: #fff;
-      font-weight: bold;
-      padding: 5px 5px;
-      border-radius: 25px;
-      font-size: 16px;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 14px;
 
       &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(255, 77, 77, 0.3);
+        opacity: 0.9;
       }
     }
   }
@@ -1778,100 +1983,101 @@ const loadParticipants = () => {
 
   h2 {
     text-align: center;
-    background: linear-gradient(135deg, #f8d568 0%, #ff4d4d 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-size: 28px;
-    margin-bottom: 20px;
-    font-weight: bold;
+    color: var(--primary-color);
+    font-size: 20px;
+    margin-bottom: 15px;
+    font-weight: 500;
   }
 
   .winner-popup-grid {
-    padding: 15px;
+    padding: 10px;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 15px;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
 
     .winner-popup-item {
-      transition: all 0.3s ease;
-      padding: 15px;
-      border-radius: 12px;
+      transition: all 0.2s ease;
+      padding: 10px;
+      border-radius: 4px;
       text-align: center;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+      border: 1px solid rgba(var(--primary-color-rgb), 0.1);
+      background-color: #fff;
 
       &:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        border-color: var(--primary-color);
       }
 
       div:nth-child(1) {
-        font-size: 20px;
-        font-weight: bold;
-        margin-bottom: 5px;
+        font-size: 16px;
+        font-weight: 500;
+        margin-bottom: 4px;
       }
 
       div:nth-child(2) {
-        font-size: 14px;
+        font-size: 12px;
         color: #606266;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
       }
 
       div:nth-child(3) {
-        font-size: 16px;
+        font-size: 14px;
         font-weight: 500;
-        padding: 5px 10px;
-        border-radius: 20px;
+        padding: 4px 8px;
+        border-radius: 4px;
         display: inline-block;
+        background-color: rgba(var(--primary-color-rgb), 0.1);
+        color: var(--primary-color);
       }
     }
   }
 }
 
 @keyframes float {
-
   0%,
   100% {
     transform: translateY(0);
   }
 
   50% {
-    transform: translateY(-10px);
+    transform: translateY(-5px);
   }
 }
 
 @keyframes glow {
-
   0%,
   100% {
-    text-shadow: 0 0 10px rgba(248, 213, 104, 0.5), 0 0 20px rgba(255, 77, 77, 0.3);
+    color: rgba(var(--primary-color-rgb), 0.9);
   }
 
   50% {
-    text-shadow: 0 0 20px rgba(248, 213, 104, 0.8), 0 0 30px rgba(255, 77, 77, 0.5);
+    color: rgba(var(--secondary-color-rgb), 1);
   }
 }
 
 @keyframes winner-pulse {
-
   0%,
   100% {
     transform: scale(1);
-    text-shadow: 0 0 10px rgba(248, 213, 104, 0.5);
+    opacity: 0.9;
   }
 
   50% {
-    transform: scale(1.05);
-    text-shadow: 0 0 20px rgba(248, 213, 104, 0.8);
+    transform: scale(1.03);
+    opacity: 1;
   }
 }
 
 @keyframes shine {
   0% {
-    background-position: -100% 0;
+    opacity: 0.7;
+  }
+
+  50% {
+    opacity: 1;
   }
 
   100% {
-    background-position: 200% 0;
+    opacity: 0.7;
   }
 }
 
@@ -1879,30 +2085,91 @@ const loadParticipants = () => {
   animation: float 4s ease-in-out infinite;
 }
 
+/* 底部滚动中奖人员样式 */
+.winner-scroll-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-top: 1px solid rgba(var(--primary-color-rgb), 0.1);
+  padding: 10px 0;
+  z-index: 10;
+  cursor: grab; /* 指示可拖动 */
+  transition: background-color 0.3s ease;
+}
+
+.winner-scroll-container:hover {
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.winner-scroll-container:active {
+  cursor: grabbing; /* 指示正在拖动 */
+}
+
+.winner-scroll-wrapper {
+  width: 100%;
+  overflow: hidden;
+}
+
+.winner-scroll {
+  display: flex;
+  white-space: nowrap;
+  transition: transform 0.1s ease-out; /* 使手动滚动更平滑 */
+}
+
+.winner-scroll-item {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 30px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  background-color: rgba(var(--primary-color-rgb), 0.03);
+  border: 1px solid rgba(var(--primary-color-rgb), 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.winner-scroll-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.winner-scroll-item .winner-name {
+  font-weight: 500;
+  margin-right: 10px;
+  color: var(--text-color);
+}
+
+.winner-scroll-item .winner-department {
+  font-size: 12px;
+  color: #606266;
+  margin-right: 10px;
+}
+
+.winner-scroll-item .winner-award {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
 .lottery-card,
 .winner-card {
   position: relative;
   overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-    transform: rotate(45deg);
-    animation: shine 10s linear infinite;
-    pointer-events: none;
-  }
+  background-color: #fff;
+  border: 1px solid rgba(var(--primary-color-rgb), 0.1);
+  border-radius: var(--border-radius-normal, 4px);
+  box-shadow: var(--box-shadow, 0 1px 3px 0 rgba(0, 0, 0, 0.08));
+  transition: all 0.3s ease;
 }
 
 // 响应式样式
 @media screen and (max-width: 1200px) {
   .lottery-content-wrapper {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 15px;
   }
 
   .award-selector {
@@ -1914,56 +2181,57 @@ const loadParticipants = () => {
 
 @media screen and (max-width: 768px) {
   .nav-container {
-    padding: 10px 15px;
-    margin: 10px;
+    padding: 8px 12px;
+    margin: 8px;
   }
 
   .logo {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .lottery-area {
     grid-template-columns: 1fr;
-    gap: 15px;
+    gap: 12px;
   }
 
   .rolling-name-item {
-    font-size: 22px;
-    height: 80px;
+    font-size: 18px;
+    height: 60px;
 
     &.current-name {
-      font-size: 26px;
+      font-size: 20px;
     }
 
     &.winner-highlight {
-      font-size: 28px;
+      font-size: 22px;
     }
   }
 
   .lottery-controls .start-btn,
   .lottery-controls .stop-btn {
-    min-width: 100px;
-    height: 45px;
-    font-size: 16px;
+    min-width: 90px;
+    height: 40px;
+    font-size: 14px;
   }
 
   .winner-popup-grid {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 8px;
 
     .winner-popup-item {
-      padding: 10px;
+      padding: 8px;
 
       div:nth-child(1) {
-        font-size: 18px;
+        font-size: 16px;
       }
 
       div:nth-child(2) {
-        font-size: 12px;
+        font-size: 11px;
       }
 
       div:nth-child(3) {
-        font-size: 14px;
+        font-size: 12px;
+        padding: 3px 6px;
       }
     }
   }
@@ -1973,10 +2241,10 @@ const loadParticipants = () => {
   .el-header {
     .nav-container {
       flex-direction: column;
-      padding: 10px 0;
+      padding: 8px 0;
 
       .logo {
-        margin-bottom: 10px;
+        margin-bottom: 8px;
       }
 
       .nav-menu {
@@ -1986,7 +2254,7 @@ const loadParticipants = () => {
   }
 
   .header .title {
-    font-size: 2rem;
+    font-size: 1.8rem;
   }
 
   .lottery-area {
@@ -1996,13 +2264,13 @@ const loadParticipants = () => {
 
   .lottery-container,
   .winner-container {
-    width: 90%;
+    width: 95%;
     max-width: none;
   }
 
   .lottery-card,
   .winner-card {
-    height: 500px;
+    height: 450px;
   }
 }
 </style>

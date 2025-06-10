@@ -1,6 +1,7 @@
-// 颜色变量
-$primary-color: #ff4d4d;
-$secondary-color: #ff8c8c;
+// 颜色变量 - 年会主题色调
+$primary-color: #e74c3c; // 喜庆红色
+$secondary-color: #f1c40f; // 金色
+$accent-color: #3498db; // 点缀蓝色
 $text-color: #333;
 $background-color: #f5f5f5;
 
@@ -17,11 +18,11 @@ $spacing-normal: 16px;
 $spacing-large: 24px;
 $spacing-xlarge: 32px;
 
-// 圆角
-$border-radius-small: 4px;
-$border-radius-normal: 8px;
-$border-radius-large: 12px;
+// 圆角 - 扁平化设计使用统一的小圆角
+$border-radius-small: 2px;
+$border-radius-normal: 4px;
+$border-radius-large: 6px;
 
-// 阴影
-$box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-$box-shadow-hover: 0 4px 16px 0 rgba(0, 0, 0, 0.2); 
+// 阴影 - 扁平化设计减少阴影
+$box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08);
+$box-shadow-hover: 0 2px 6px 0 rgba(0, 0, 0, 0.12);
