@@ -20,74 +20,13 @@
             </span>
             <template #dropdown>
               <el-dropdown-menu>
-                <!-- 未登录用户可见的功能 -->
+                <!-- 全屏功能 -->
                 <el-dropdown-item @click="toggleFullScreen">
                   <el-icon>
                     <FullScreen />
                   </el-icon>
                   <span>{{ isFullScreen ? '退出全屏' : '进入全屏' }}</span>
                 </el-dropdown-item>
-                
-                <!-- 登录入口 -->
-                <el-dropdown-item v-if="!isLoggedIn" @click="goToLogin">
-                  <el-icon>
-                    <User />
-                  </el-icon>
-                  <span>管理员登录</span>
-                </el-dropdown-item>
-                
-                <!-- 管理员可见的功能 -->
-                <template v-if="isLoggedIn">
-                  <el-dropdown-item>
-                    <router-link to="/awards">
-                      <el-icon>
-                        <Trophy />
-                      </el-icon>
-                      <span>奖项管理</span>
-                    </router-link>
-                  </el-dropdown-item>
-                  <el-dropdown-item>
-                    <router-link to="/participants">
-                      <el-icon>
-                        <User />
-                      </el-icon>
-                      <span>人员管理</span>
-                    </router-link>
-                  </el-dropdown-item>
-                  <el-dropdown-item @click="exportToExcel">
-                    <span>导出中奖名单</span>
-                  </el-dropdown-item>
-                  <el-dropdown-item @click="resetLotteryData">
-                    <el-icon>
-                      <Refresh />
-                    </el-icon>
-                    <span>重置中奖数据</span>
-                  </el-dropdown-item>
-                  <el-dropdown-item @click="clearAllData">
-                    <el-icon>
-                      <Delete />
-                    </el-icon>
-                    <span>清空所有数据</span>
-                  </el-dropdown-item>
-                  <el-dropdown-item @click="openBackgroundSelector">
-                    <el-icon>
-                      <Picture />
-                    </el-icon>
-                    <span>选择背景图片</span>
-                  </el-dropdown-item>
-                  <el-dropdown-item @click="openDateTimePicker">
-                    <el-icon>
-                      <Timer />
-                    </el-icon>
-                    <span>设置抽奖时间</span>
-                  </el-dropdown-item>
-                  <el-dropdown-item @click="logout">
-                    <el-icon>
-                      <SwitchButton />
-                    </el-icon>
-                    <span>退出登录</span>
-                  </el-dropdown-item>
-                </template>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -272,7 +211,8 @@ import {
   Picture,
   Timer,
   FullScreen,
-  Aim
+  Aim,
+  DataBoard
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as XLSX from 'xlsx'

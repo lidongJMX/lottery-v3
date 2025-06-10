@@ -84,7 +84,7 @@ const handleLogin = () => {
       // 保存token到本地存储
       localStorage.setItem('token', data.token)
       ElMessage.success('登录成功')
-      router.push('/')
+      router.push('/admin/dashboard')
     } catch (error) {
       console.error('登录失败:', error)
       ElMessage.error(error.message || '登录失败，请检查用户名和密码')

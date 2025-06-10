@@ -9,6 +9,7 @@ const awardController = require('../controllers/awardController');
 const participantController = require('../controllers/participantController');
 const winnerController = require('../controllers/winnerController');
 const prizeController = require('../controllers/prizeController');
+const dashboardController = require('../controllers/dashboardController');
 
 // 文件上传配置
 const upload = multer({
@@ -20,6 +21,15 @@ const upload = multer({
 
 // 管理员路由
 router.post('/admin/login', adminController.login);
+
+// 仪表盘路由
+router.get('/admin/dashboard', auth, dashboardController.getStats);
+router.get('/winners/distribution', auth, dashboardController.getWinnerDistribution);
+router.get('/winners/department-stats', auth, dashboardController.getDepartmentStats);
+router.get('/awards/stats', auth, dashboardController.getAwardStats);
+router.get('/winners/trend', auth, dashboardController.getWinnerTrend);
+router.get('/participants/department-distribution', auth, dashboardController.getDepartmentDistribution);
+router.get('/winners/department-win-rate', auth, dashboardController.getDepartmentWinRate);
 
 // 抽奖路由
 router.post('/lottery/start', auth, lotteryController.start);
