@@ -4,6 +4,7 @@ const Award = require('../models/Award');
 const Participant = require('../models/Participant');
 const Winner = require('../models/Winner');
 const Epoch = require('../models/Epoch');
+const Settings = require('../models/Settings');
 
 const initDatabase = async () => {
   try {
@@ -106,6 +107,43 @@ const initDatabase = async () => {
         current_epoch: 0,
         status: 1
       });
+    }
+
+    // 创建初始系统设置（如果不存在）
+    const settingsCount = await Settings.count();
+    if (settingsCount === 0) {
+      await Settings.bulkCreate([
+        {
+          key: 'meetingTheme',
+          value: '年会抽奖系统',
+          type: 'string',
+          description: '会议或活动的主题名称'
+        },
+        {
+          key: 'backgroundMusicEnabled',
+          value: 'false',
+          type: 'boolean',
+          description: '是否启用背景音乐'
+        },
+        {
+          key: 'currentMusicUrl',
+          value: '',
+          type: 'string',
+          description: '当前背景音乐文件URL'
+        },
+        {
+          key: 'musicVolume',
+          value: '50',
+          type: 'number',
+          description: '背景音乐音量（0-100）'
+        },
+        {
+          key: 'roundLotteryEnabled',
+          value: 'true',
+          type: 'boolean',
+          description: '是否启用轮次抽奖功能'
+        }
+      ]);
     }
 
     console.log('数据库初始化完成！');

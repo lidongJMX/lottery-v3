@@ -8,6 +8,104 @@
       </template>
       
       <el-tabs v-model="activeTab">
+        <!-- 基础设置 -->
+        <el-tab-pane label="基础设置" name="basic">
+          <div class="settings-section">
+            <h3>会议主题设置</h3>
+            <p class="section-desc">设置会议或活动的主题名称</p>
+            
+            <el-form>
+              <el-form-item label="会议主题">
+                <el-input
+                  v-model="meetingTheme"
+                  placeholder="请输入会议主题"
+                  maxlength="50"
+                  show-word-limit
+                />
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" @click="saveMeetingTheme">保存主题设置</el-button>
+              </el-form-item>
+            </el-form>
+          </div>
+          
+          <div class="settings-section">
+            <h3>主页背景音乐设置</h3>
+            <p class="section-desc">设置主页播放的背景音乐</p>
+            
+            <el-form>
+              <el-form-item label="背景音乐开关">
+                <el-switch
+                  v-model="backgroundMusicEnabled"
+                  @change="toggleBackgroundMusic"
+                  active-text="开启"
+                  inactive-text="关闭"
+                />
+              </el-form-item>
+              <el-form-item label="音乐文件" v-if="backgroundMusicEnabled">
+                <el-upload
+                  class="music-upload"
+                  :action="uploadUrl"
+                  :before-upload="beforeMusicUpload"
+                  :on-success="handleMusicUploadSuccess"
+                  :file-list="musicFileList"
+                  accept=".mp3,.wav,.ogg"
+                  :limit="1"
+                >
+                  <el-button type="primary">选择音乐文件</el-button>
+                  <template #tip>
+                    <div class="el-upload__tip">
+                      支持 mp3/wav/ogg 格式，文件大小不超过 10MB
+                    </div>
+                  </template>
+                </el-upload>
+              </el-form-item>
+              <el-form-item label="音量控制" v-if="backgroundMusicEnabled && currentMusicUrl">
+                <el-slider
+                  v-model="musicVolume"
+                  :min="0"
+                  :max="100"
+                  @change="updateMusicVolume"
+                  show-input
+                  input-size="small"
+                  style="width: 300px;"
+                />
+              </el-form-item>
+              <el-form-item v-if="currentMusicUrl">
+                <el-button @click="testPlayMusic" :disabled="!backgroundMusicEnabled">
+                  {{ isPlaying ? '停止试听' : '试听音乐' }}
+                </el-button>
+              </el-form-item>
+            </el-form>
+          </div>
+          
+          <div class="settings-section">
+            <h3>轮次抽奖开关设置</h3>
+            <p class="section-desc">控制是否启用轮次抽奖功能</p>
+            
+            <el-form>
+              <el-form-item label="轮次抽奖功能">
+                <el-switch
+                  v-model="roundLotteryEnabled"
+                  @change="toggleRoundLottery"
+                  active-text="启用"
+                  inactive-text="禁用"
+                />
+              </el-form-item>
+              <el-form-item>
+                <div class="setting-desc">
+                  <p v-if="roundLotteryEnabled" class="enabled-desc">
+                    ✅ 轮次抽奖功能已启用，用户可以进行轮次抽奖
+                  </p>
+                  <p v-else class="disabled-desc">
+                    ❌ 轮次抽奖功能已禁用，用户无法进行轮次抽奖
+                  </p>
+                </div>
+              </el-form-item>
+            </el-form>
+          </div>
+        </el-tab-pane>
+        
         <!-- 背景设置 -->
         <el-tab-pane label="背景设置" name="background">
           <div class="settings-section">
@@ -108,9 +206,21 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import request from '@/utils/request'
 
 // 当前激活的标签页
-const activeTab = ref('background')
+const activeTab = ref('basic')
+
+// 基础设置
+const meetingTheme = ref('')
+const backgroundMusicEnabled = ref(false)
+const currentMusicUrl = ref('')
+const musicFileList = ref([])
+const musicVolume = ref(50)
+const isPlaying = ref(false)
+const audioElement = ref(null)
+const roundLotteryEnabled = ref(true)
+const uploadUrl = '/api/upload/music'
 
 // 背景设置
 const currentBackground = ref('')
@@ -127,8 +237,10 @@ const lotteryDateTime = ref(new Date())
 
 // 初始化
 onMounted(() => {
+  loadBasicSettings()
   loadCurrentBackground()
   loadLotteryDateTime()
+  initAudioElement()
 })
 
 // 选择背景
@@ -224,6 +336,220 @@ const clearAllData = async () => {
     ElMessage.error('清空失败，请稍后重试')
   }
 }
+
+// 基础设置相关方法
+// 加载基础设置
+const loadBasicSettings = async () => {
+  try {
+    // 从数据库加载设置
+    const response = await request.get('/api/settings')
+    if (response.data.success) {
+      const data = response.data.data
+      
+      // 更新设置数据
+      meetingTheme.value = data.meetingTheme || '年会抽奖系统'
+      backgroundMusicEnabled.value = data.backgroundMusicEnabled || false
+      currentMusicUrl.value = data.currentMusicUrl || ''
+      musicVolume.value = data.musicVolume !== undefined ? data.musicVolume : 50
+      roundLotteryEnabled.value = data.roundLotteryEnabled !== undefined ? data.roundLotteryEnabled : true
+      
+      // 同步到localStorage
+      localStorage.setItem('meetingTheme', meetingTheme.value)
+      localStorage.setItem('backgroundMusicEnabled', backgroundMusicEnabled.value.toString())
+      localStorage.setItem('currentMusicUrl', currentMusicUrl.value)
+      localStorage.setItem('musicVolume', musicVolume.value.toString())
+      localStorage.setItem('roundLotteryEnabled', roundLotteryEnabled.value.toString())
+      
+      // 更新音乐文件列表
+      if (currentMusicUrl.value) {
+        musicFileList.value = [{
+          name: '背景音乐.mp3',
+          url: currentMusicUrl.value
+        }]
+      }
+    } else {
+      // 如果数据库中没有设置，则从localStorage加载
+      loadFromLocalStorage()
+    }
+  } catch (error) {
+    console.error('从数据库加载设置失败:', error)
+    // 如果API调用失败，则从localStorage加载
+    loadFromLocalStorage()
+  }
+}
+
+// 从localStorage加载设置（备用方案）
+const loadFromLocalStorage = () => {
+  // 加载会议主题
+  const savedTheme = localStorage.getItem('meetingTheme')
+  if (savedTheme) {
+    meetingTheme.value = savedTheme
+  }
+  
+  // 加载背景音乐设置
+  const musicEnabled = localStorage.getItem('backgroundMusicEnabled')
+  backgroundMusicEnabled.value = musicEnabled === 'true'
+  
+  const savedMusicUrl = localStorage.getItem('currentMusicUrl')
+  if (savedMusicUrl) {
+    currentMusicUrl.value = savedMusicUrl
+    musicFileList.value = [{
+      name: '背景音乐.mp3',
+      url: savedMusicUrl
+    }]
+  }
+  
+  const savedVolume = localStorage.getItem('musicVolume')
+  if (savedVolume) {
+    musicVolume.value = parseInt(savedVolume)
+  }
+  
+  // 加载轮次抽奖开关
+  const roundLotteryStatus = localStorage.getItem('roundLotteryEnabled')
+  roundLotteryEnabled.value = roundLotteryStatus !== 'false'
+}
+
+// 保存会议主题
+const saveMeetingTheme = async () => {
+  try {
+    await request.put(`/api/settings/meetingTheme`, {
+      value: meetingTheme.value,
+      type: 'string',
+      description: '会议或活动的主题名称'
+    })
+    
+    localStorage.setItem('meetingTheme', meetingTheme.value)
+    ElMessage.success('会议主题已保存')
+  } catch (error) {
+    console.error('保存会议主题失败:', error)
+    ElMessage.error('保存会议主题失败')
+  }
+}
+
+// 初始化音频元素
+const initAudioElement = () => {
+  audioElement.value = new Audio()
+  audioElement.value.volume = musicVolume.value / 100
+  audioElement.value.addEventListener('ended', () => {
+    isPlaying.value = false
+  })
+}
+
+// 切换背景音乐开关
+const toggleBackgroundMusic = async (enabled) => {
+  try {
+    await request.put(`/api/settings/backgroundMusicEnabled`, {
+      value: enabled,
+      type: 'boolean',
+      description: '是否启用背景音乐'
+    })
+    
+    localStorage.setItem('backgroundMusicEnabled', enabled.toString())
+    if (!enabled && isPlaying.value) {
+      stopMusic()
+    }
+    ElMessage.success(enabled ? '背景音乐已开启' : '背景音乐已关闭')
+  } catch (error) {
+    console.error('保存背景音乐设置失败:', error)
+    ElMessage.error('保存背景音乐设置失败')
+  }
+}
+
+// 音乐文件上传前检查
+const beforeMusicUpload = (file) => {
+  const isAudio = ['audio/mpeg', 'audio/wav', 'audio/ogg'].includes(file.type)
+  const isLt10M = file.size / 1024 / 1024 < 10
+  
+  if (!isAudio) {
+    ElMessage.error('只能上传音频文件！')
+    return false
+  }
+  if (!isLt10M) {
+    ElMessage.error('文件大小不能超过 10MB！')
+    return false
+  }
+  return true
+}
+
+// 音乐文件上传成功
+const handleMusicUploadSuccess = (response, file) => {
+  if (response.success) {
+    currentMusicUrl.value = response.url
+    localStorage.setItem('currentMusicUrl', response.url)
+    musicFileList.value = [{
+      name: file.name,
+      url: response.url
+    }]
+    ElMessage.success('音乐文件上传成功')
+  } else {
+    ElMessage.error('音乐文件上传失败')
+  }
+}
+
+// 更新音乐音量
+const updateMusicVolume = async (volume) => {
+  try {
+    await request.put(`/api/settings/musicVolume`, {
+      value: volume,
+      type: 'number',
+      description: '背景音乐音量（0-100）'
+    })
+    
+    localStorage.setItem('musicVolume', volume.toString())
+    if (audioElement.value) {
+      audioElement.value.volume = volume / 100
+    }
+  } catch (error) {
+    console.error('保存音量设置失败:', error)
+    ElMessage.error('保存音量设置失败')
+  }
+}
+
+// 试听音乐
+const testPlayMusic = () => {
+  if (!audioElement.value || !currentMusicUrl.value) return
+  
+  if (isPlaying.value) {
+    stopMusic()
+  } else {
+    playMusic()
+  }
+}
+
+// 播放音乐
+const playMusic = () => {
+  if (audioElement.value && currentMusicUrl.value) {
+    audioElement.value.src = currentMusicUrl.value
+    audioElement.value.play()
+    isPlaying.value = true
+  }
+}
+
+// 停止音乐
+const stopMusic = () => {
+  if (audioElement.value) {
+    audioElement.value.pause()
+    audioElement.value.currentTime = 0
+    isPlaying.value = false
+  }
+}
+
+// 切换轮次抽奖开关
+const toggleRoundLottery = async (enabled) => {
+  try {
+    await request.put(`/api/settings/roundLotteryEnabled`, {
+      value: enabled,
+      type: 'boolean',
+      description: '是否启用轮次抽奖功能'
+    })
+    
+    localStorage.setItem('roundLotteryEnabled', enabled.toString())
+    ElMessage.success(enabled ? '轮次抽奖功能已启用' : '轮次抽奖功能已禁用')
+  } catch (error) {
+    console.error('保存轮次抽奖设置失败:', error)
+    ElMessage.error('保存轮次抽奖设置失败')
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -297,6 +623,26 @@ const clearAllData = async () => {
           color: #606266;
         }
       }
+    }
+  }
+  
+  .music-upload {
+    :deep(.el-upload) {
+      width: 100%;
+    }
+  }
+  
+  .setting-desc {
+    .enabled-desc {
+      color: #67c23a;
+      font-weight: 500;
+      margin: 0;
+    }
+    
+    .disabled-desc {
+      color: #f56c6c;
+      font-weight: 500;
+      margin: 0;
     }
   }
 }

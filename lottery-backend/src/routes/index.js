@@ -10,6 +10,7 @@ const participantController = require('../controllers/participantController');
 const winnerController = require('../controllers/winnerController');
 const prizeController = require('../controllers/prizeController');
 const dashboardController = require('../controllers/dashboardController');
+const settingsController = require('../controllers/settingsController');
 
 // 文件上传配置
 const upload = multer({
@@ -63,5 +64,13 @@ router.get('/participants/lottery', participantController.getLotteryParticipants
 router.get('/winners', auth, winnerController.getAll);
 router.get('/winners/export', winnerController.exportWinners);
 router.delete('/winners/:id', winnerController.delete);
+
+// 设置路由
+router.get('/settings', settingsController.getAllSettings);
+router.get('/settings/:key', settingsController.getSetting);
+router.put('/settings/:key', auth, settingsController.setSetting);
+router.post('/settings/batch', auth, settingsController.setMultipleSettings);
+router.delete('/settings/:key', auth, settingsController.deleteSetting);
+router.post('/settings/initialize', auth, settingsController.initializeDefaultSettings);
 
 module.exports = router;

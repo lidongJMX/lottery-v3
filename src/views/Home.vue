@@ -1,38 +1,16 @@
 <template>
   <div class="home-container" :style="{ backgroundImage: `url(${currentBackground})` }">
     <div class="background">
-      <div class="lantern left"></div>
+      <video class="videoBg" src="../assets/背景视频.mp4" autoplay="autoplay" loop="loop" muted="muted"
+        data-src="../assets/背景视频.mp4"
+        style="width: 1482px; height: auto; left: 0px; top: 50%; margin-left: 0px; margin-top: -463.125px;">
+      </video>
+      <!-- <div class="lantern left"></div>
       <div class="lantern right"></div>
-      <div class="fireworks"></div>
+      <div class="fireworks"></div> -->
     </div>
 
     <el-container>
-      <el-header>
-        <div class="nav-container">
-          <div class="logo">年会抽奖系统</div>
-
-          <!-- 将菜单项放入下拉菜单 -->
-          <el-dropdown trigger="click" class="nav-dropdown">
-            <span class="el-dropdown-link">
-              <el-icon>
-                <More />
-              </el-icon>
-            </span>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <!-- 全屏功能 -->
-                <el-dropdown-item @click="toggleFullScreen">
-                  <el-icon>
-                    <FullScreen />
-                  </el-icon>
-                  <span>{{ isFullScreen ? '退出全屏' : '进入全屏' }}</span>
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </div>
-      </el-header>
-
       <el-main>
         <div class="content">
           <div class="countdown">
@@ -59,30 +37,36 @@
                     </div>
 
                     <div class="lottery-content-wrapper">
-                      <!-- 左侧奖项选择器 -->
-                      <div class="award-selector">
-                        <el-select v-model="currentAward" placeholder="请选择奖项" class="award-select"
-                          @change="handleAwardChange">
-                          <el-option label="轮次抽奖" value="轮次抽奖">
-                            <span style="float: left">轮次抽奖</span>
-                            <span style="float: right; color: #8492a6; font-size: 13px">
-                              抽取所有奖项
-                            </span>
-                          </el-option>
-                          <el-option v-for="award in awards" :key="award.id" :label="award.name" :value="award.name"
-                            :disabled="award.remaining_count <= 0">
-                            <span style="float: left">{{ award.name }}</span>
-                            <span style="float: right; color: #8492a6; font-size: 13px">
-                              <el-tag size="small" :type="getLevelType(award.level)">{{ getLevelText(award.level)
-                              }}</el-tag>
-                              剩余: {{ award.remaining_count }}/{{ award.count }}
-                            </span>
-                          </el-option>
-                        </el-select>
-                        <p v-if="selectedAward" class="award-desc">
-                          <span>{{ selectedAward.description }}</span>
-                          <span v-if="selectedAward.draw_count > 1">(每次抽取{{ selectedAward.draw_count }}人)</span>
-                        </p>
+                      <!-- 左侧奖项列表 -->
+                      <div class="award-list-panel">
+                        <!-- <div class="award-list-header">
+                          <h3>奖项列表</h3>
+                          <p class="award-list-subtitle">点击选择要抽取的奖项</p>
+                        </div> -->
+                        <div class="award-list">
+
+                          <!-- 具体奖项列表 -->
+                          <div v-for="award in awards" :key="award.id" class="award-item" :class="{
+                            'active': currentAward === award.name,
+                            'disabled': award.remaining_count <= 0
+                          }" @click="selectAward(award.name)">
+                            <div class="award-item-content">
+                              <div class="award-name">{{ award.name }}</div>
+                              <div class="award-level">
+                                <el-tag size="small" :type="getLevelType(award.level)">
+                                  {{ getLevelText(award.level) }}
+                                </el-tag>
+                              </div>
+                              <div class="award-description">{{ award.description }}</div>
+                              <div class="award-count">
+                                剩余: {{ award.remaining_count }}/{{ award.count }}
+                                <span v-if="award.draw_count > 1" class="draw-count">
+                                  (每次{{ award.draw_count }}人)
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
 
                       <!-- 右侧抽奖区域 -->
@@ -128,9 +112,8 @@
                     </el-icon>
                     <h2>中奖名单</h2>
                   </div>
-                  <div class="winner-list" ref="winnerListRef" 
-                       @mouseenter="pauseWinnerListScroll" 
-                       @mouseleave="resumeWinnerListScroll">
+                  <div class="winner-list" ref="winnerListRef" @mouseenter="pauseWinnerListScroll"
+                    @mouseleave="resumeWinnerListScroll">
                     <div v-for="(winner, index) in lastRoundWinners" :key="index" class="winner-item">
                       <span class="winner-name">{{ winner.user_code }}</span>
                       <span class="winner-name">{{ winner.name }}</span>
@@ -153,26 +136,6 @@
         </div>
       </el-main>
     </el-container>
-    
-    <!-- 底部滚动中奖人员区域 -->
-    <div class="winner-scroll-container"
-         @mouseenter="pauseScroll"
-         @mouseleave="resumeScroll"
-         @mousedown="startManualScroll"
-         @mouseup="endManualScroll"
-         @mousemove="handleManualScroll">
-      <div class="winner-scroll-wrapper">
-        <div class="winner-scroll" :style="{ transform: `translateX(${-scrollPosition}px)` }">
-          <div v-for="(winner, index) in allWinners" :key="index" class="winner-scroll-item">
-            <span class="winner-name">{{ winner.name }}</span>
-            <span class="winner-department">{{ winner.department }}</span>
-            <span class="winner-award" :style="{ color: winner.color, backgroundColor: winner.color + '10' }">
-              {{ winner.award_name }}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 
   <!-- 中奖弹窗 -->
@@ -230,6 +193,13 @@ const router = useRouter()
 const goToLogin = () => {
   router.push('/login')
 }
+
+// 基础设置相关
+const meetingTheme = ref('')
+const backgroundMusicEnabled = ref(false)
+const currentMusicUrl = ref('')
+const musicVolume = ref(50)
+const audioElement = ref(null)
 
 // 背景图片相关
 const backgroundOptions = [
@@ -368,12 +338,12 @@ const initScrollAnimation = () => {
   if (scrollInterval.value) {
     clearInterval(scrollInterval.value)
   }
-  
+
   // 设置定时器，每50毫秒移动1像素
   scrollInterval.value = setInterval(() => {
     // 如果暂停或正在手动滚动，则不执行自动滚动
     if (isScrollPaused.value || isManualScrolling.value) return
-    
+
     // 获取滚动容器的宽度
     const container = document.querySelector('.winner-scroll-container')
     if (container) {
@@ -381,7 +351,7 @@ const initScrollAnimation = () => {
       if (scrollContent) {
         scrollWidth.value = scrollContent.scrollWidth
         const containerWidth = container.clientWidth
-        
+
         // 如果滚动位置超过内容宽度，重置到起始位置，实现循环滚动
         if (scrollPosition.value >= scrollWidth.value) {
           // 重置到0，实现首尾相接的效果
@@ -425,17 +395,17 @@ const endManualScroll = () => {
 // 处理手动滚动
 const handleManualScroll = (event) => {
   if (!isManualScrolling.value) return
-  
+
   const deltaX = event.clientX - lastMouseX.value
   scrollPosition.value -= deltaX * 2 // 乘以2使滚动更明显
-  
+
   // 获取滚动内容的宽度
   const container = document.querySelector('.winner-scroll-container')
   const scrollContent = container?.querySelector('.winner-scroll')
-  
+
   if (container && scrollContent) {
     const contentWidth = scrollContent.scrollWidth
-    
+
     // 循环滚动处理：确保滚动位置在有效范围内
     if (scrollPosition.value < 0) {
       // 如果滚动到最左侧之前，跳转到最右侧
@@ -445,7 +415,7 @@ const handleManualScroll = (event) => {
       scrollPosition.value = 0
     }
   }
-  
+
   lastMouseX.value = event.clientX
 }
 
@@ -456,18 +426,18 @@ const initWinnerListScroll = () => {
     clearInterval(winnerListScrollInterval.value)
     winnerListScrollInterval.value = null
   }
-  
+
   // 使用requestAnimationFrame实现连续平滑滚动
   let lastTime = 0
   const scrollSpeed = 0.5 // 每帧滚动像素数，可调整滚动速度
-  
+
   const smoothScroll = (currentTime) => {
     // 如果暂停滚动，继续下一帧但不执行滚动
     if (isWinnerListScrollPaused.value) {
       winnerListScrollInterval.value = requestAnimationFrame(smoothScroll)
       return
     }
-    
+
     const winnerList = winnerListRef.value
     if (winnerList && lastRoundWinners.value.length > 0) {
       // 控制滚动频率，避免过快
@@ -475,7 +445,7 @@ const initWinnerListScroll = () => {
         const scrollTop = winnerList.scrollTop
         const scrollHeight = winnerList.scrollHeight
         const clientHeight = winnerList.clientHeight
-        
+
         // 实现循环滚动效果
         if (scrollTop + clientHeight >= scrollHeight - 10) {
           // 当滚动到底部时，立即回到顶部，实现循环效果
@@ -484,15 +454,15 @@ const initWinnerListScroll = () => {
           // 连续向下滚动
           winnerList.scrollTop += scrollSpeed
         }
-        
+
         lastTime = currentTime
       }
     }
-    
+
     // 继续下一帧动画
     winnerListScrollInterval.value = requestAnimationFrame(smoothScroll)
   }
-  
+
   // 开始动画循环
   winnerListScrollInterval.value = requestAnimationFrame(smoothScroll)
 }
@@ -521,10 +491,7 @@ const getWinnerColor = (winner) => {
 const getWinnerAwardName = (winner) => {
   return winner.award_name || winner.award || awards.value.find(a => a.id === winner.award_id)?.name || '未知奖项'
 }
-// 是否是轮次抽奖模式
-const isRoundLottery = ref(false)
-// 当前轮次抽奖的奖项索引
-const currentRoundIndex = ref(0)
+
 
 // 滚动动画相关数据
 const displayNames = ref([])
@@ -633,13 +600,13 @@ onMounted(() => {
 
   loadawards()
   loadWinners()
-  
+
   // 初始化底部滚动中奖人员动画
   initScrollAnimation()
-  
+
   // 初始化右侧中奖名单自动滚动
   initWinnerListScroll()
-  
+
   // 获取未中奖用户+50%的中奖用户
   fetch('/api/participants/lottery')
     .then(res => {
@@ -661,13 +628,13 @@ onMounted(() => {
 // 组件卸载时移除监听器
 onUnmounted(() => {
   document.removeEventListener('fullscreenchange', handleFullScreenChange)
-  
+
   // 清理底部滚动定时器
   if (scrollInterval.value) {
     clearInterval(scrollInterval.value)
     scrollInterval.value = null
   }
-  
+
   // 清理右侧中奖名单自动滚动动画
   if (winnerListScrollInterval.value) {
     cancelAnimationFrame(winnerListScrollInterval.value)
@@ -704,28 +671,6 @@ const loadawards = () => {
 }
 
 const selectedAward = computed(() => {
-  if (currentAward.value === '轮次抽奖') {
-    const availableAwards = awards.value.filter(p => p.remaining_count > 0);
-    // 如果没有可用奖项，返回基本信息但不显示已抽完
-    if (availableAwards.length === 0) {
-      return {
-        name: '轮次抽奖',
-        description: '依次抽取所有奖项',
-        count: awards.value.reduce((sum, award) => sum + award.count, 0),
-        remaining_count: 0, // 保持为1以避免显示已抽完
-        draw_count: 1,
-        level: 0
-      }
-    }
-    return {
-      name: '轮次抽奖',
-      description: '依次抽取所有奖项',
-      count: availableAwards.reduce((sum, award) => sum + award.count, 0),
-      remaining_count: availableAwards.reduce((sum, award) => sum + award.remaining_count, 0),
-      draw_count: availableAwards.reduce((sum, award) => sum + (award.draw_count || 1), 0),
-      level: 0
-    }
-  }
   const award = awards.value.find(p => p.name === currentAward.value);
   if (award) {
     return {
@@ -747,8 +692,21 @@ const selectedAward = computed(() => {
 
 // 处理奖项选择变化
 const handleAwardChange = () => {
-  isRoundLottery.value = currentAward.value === '轮次抽奖'
-  currentRoundIndex.value = 0
+  // 奖项选择变化处理
+}
+
+// 选择奖项
+const selectAward = (awardName) => {
+  // 如果是已抽完的奖项，不允许选择
+  const award = awards.value.find(a => a.name === awardName)
+  if (award && award.remaining_count <= 0) {
+    ElMessage.warning('该奖项已抽完，无法选择')
+    return
+  }
+
+  currentAward.value = awardName
+  handleAwardChange()
+  ElMessage.success(`已选择奖项: ${awardName}`)
 }
 
 
@@ -756,29 +714,12 @@ const handleAwardChange = () => {
 const startLottery = async () => {
   if (isDrawing.value) return
 
-  // 轮次抽奖模式
-  if (isRoundLottery.value) {
-    // 找到所有有剩余数量的奖项
-    const availableAwards = awards.value.filter(p => p.remaining_count > 0)
-    if (availableAwards.length === 0) {
-      ElMessage.warning('所有奖项已抽完！')
-      return
-    }
-    // 设置当前奖项为当前轮次的奖项
-    const currentAwards = availableAwards
-    if (!currentAwards.length) {
-      ElMessage.warning('本轮抽奖已完成！')
-      return
-    }
-    console.log('轮次抽奖模式，当前可用奖项:', currentAwards.map(award => award.name).join(', '))
-  } else {
-    // 普通模式 - 检查是否还有剩余奖项
-    const award = awards.value.find(p => p.name === currentAward.value)
-    console.log('当前奖项:', award)
-    if (!award || award.remaining_count <= 0) {
-      ElMessage.warning('当前奖项已抽完！')
-      return
-    }
+  // 检查是否还有剩余奖项
+  const award = awards.value.find(p => p.name === currentAward.value)
+  console.log('当前奖项:', award)
+  if (!award || award.remaining_count <= 0) {
+    ElMessage.warning('当前奖项已抽完！')
+    return
   }
 
   try {
@@ -876,16 +817,9 @@ const stopLottery = async () => {
   clearInterval(rollingInterval.value)
 
   // 找到对应的奖项
-  let awards_to_draw = []
-  if (isRoundLottery.value) {
-    // 轮次抽奖模式 - 获取所有有剩余数量的奖项
-    awards_to_draw = awards.value.filter(p => p.remaining_count > 0)
-    if (!awards_to_draw.length) return
-  } else {
-    const award = awards.value.find(p => p.name === currentAward.value)
-    if (!award) return
-    awards_to_draw = [award]
-  }
+  const award = awards.value.find(p => p.name === currentAward.value)
+  if (!award) return
+  const awards_to_draw = [award]
   try {
     const response = await fetch('/api/lottery/stop', {
       method: 'POST',
@@ -970,16 +904,7 @@ const stopLottery = async () => {
       showWinnerDialog.value = true
     }
 
-    // 轮次抽奖模式结束处理
-    if (isRoundLottery.value) {
-      const remainingAwards = awards.value.filter(p => p.remaining_count > 0)
-      if (remainingAwards.length === 0) {
-        ElMessage.success('所有奖项抽取完毕！')
-        currentRoundIndex.value = 0
-        isRoundLottery.value = false
-        currentAward.value = ''
-      }
-    }
+
   } catch (error) {
     console.error('停止抽奖或处理结果时出错:', error)
     ElMessage.error('处理中奖结果失败')
@@ -1078,8 +1003,6 @@ const resetLotteryData = async () => {
     currentRollingName.value = null
     isDrawing.value = false
     currentAward.value = ''
-    isRoundLottery.value = false
-    currentRoundIndex.value = 0
 
     // 显示成功消息
     ElMessage.success(result.message || '重置成功')
@@ -1125,8 +1048,6 @@ const clearAllData = async () => {
     currentRollingName.value = null
     isDrawing.value = false
     currentAward.value = ''
-    isRoundLottery.value = false
-    currentRoundIndex.value = 0
 
     // 显示成功消息
     ElMessage.success('所有数据已清空')
@@ -1188,6 +1109,114 @@ const loadParticipants = () => {
       isLoadingParticipants.value = false
     })
 }
+
+// 加载基础设置
+const loadBasicSettings = async () => {
+  try {
+    // 从数据库API加载设置
+    const response = await fetch('/api/settings')
+    if (response.ok) {
+      const result = await response.json()
+      if (result.success) {
+        const data = result.data
+
+        // 更新设置数据
+        meetingTheme.value = data.meetingTheme || '年会抽奖系统'
+        backgroundMusicEnabled.value = data.backgroundMusicEnabled || false
+        currentMusicUrl.value = data.currentMusicUrl || ''
+        musicVolume.value = data.musicVolume !== undefined ? data.musicVolume : 50
+
+        // 同步到localStorage作为备份
+        localStorage.setItem('meetingTheme', meetingTheme.value)
+        localStorage.setItem('backgroundMusicEnabled', backgroundMusicEnabled.value.toString())
+        localStorage.setItem('currentMusicUrl', currentMusicUrl.value)
+        localStorage.setItem('musicVolume', musicVolume.value.toString())
+
+        // 初始化背景音乐
+        if (backgroundMusicEnabled.value && currentMusicUrl.value) {
+          initBackgroundMusic()
+        }
+        return
+      }
+    }
+  } catch (error) {
+    console.error('从数据库加载设置失败，使用localStorage备份:', error)
+  }
+
+  // 如果API调用失败，则从localStorage加载
+  const savedTheme = localStorage.getItem('meetingTheme')
+  if (savedTheme) {
+    meetingTheme.value = savedTheme
+  }
+
+
+  const musicEnabled = localStorage.getItem('backgroundMusicEnabled')
+  backgroundMusicEnabled.value = musicEnabled === 'true'
+
+  const savedMusicUrl = localStorage.getItem('currentMusicUrl')
+  if (savedMusicUrl) {
+    currentMusicUrl.value = savedMusicUrl
+  }
+
+  const savedVolume = localStorage.getItem('musicVolume')
+  if (savedVolume) {
+    musicVolume.value = parseInt(savedVolume)
+  }
+
+  // 初始化背景音乐
+  if (backgroundMusicEnabled.value && currentMusicUrl.value) {
+    initBackgroundMusic()
+  }
+}
+
+// 初始化背景音乐
+const initBackgroundMusic = () => {
+  if (!audioElement.value) {
+    audioElement.value = new Audio()
+    audioElement.value.loop = true
+    audioElement.value.volume = musicVolume.value / 100
+  }
+
+  if (currentMusicUrl.value) {
+    audioElement.value.src = currentMusicUrl.value
+    // 自动播放背景音乐（需要用户交互后才能播放）
+    audioElement.value.play().catch(error => {
+      console.log('背景音乐自动播放失败，需要用户交互:', error)
+    })
+  }
+}
+
+// 页面初始化
+onMounted(() => {
+  loadBasicSettings()
+  loadawards()
+  loadWinners()
+  loadParticipants()
+
+  // 加载保存的背景图片
+  const savedBackground = localStorage.getItem('lottery_background')
+  if (savedBackground) {
+    currentBackground.value = savedBackground
+  }
+
+  // 加载保存的倒计时时间
+  const savedDateTime = localStorage.getItem('lotteryDateTime')
+  if (savedDateTime) {
+    countdownDate.value = parseInt(savedDateTime)
+  }
+
+  // 监听全屏状态变化
+  document.addEventListener('fullscreenchange', handleFullScreenChange)
+})
+
+// 页面卸载时清理
+onUnmounted(() => {
+  document.removeEventListener('fullscreenchange', handleFullScreenChange)
+  if (audioElement.value) {
+    audioElement.value.pause()
+    audioElement.value = null
+  }
+})
 </script>
 
 <style lang="scss" scoped>
@@ -1209,13 +1238,23 @@ const loadParticipants = () => {
   height: 100%;
   z-index: 1;
   pointer-events: none;
+
+  .videoBg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: -1;
+  }
 }
 
 .el-header {
-  background-color: rgba(255, 255, 255, 0.95);
+  background-color: rgba(var(--warm-white-rgb), 0.95);
   color: var(--text-color);
   padding: 0 20px;
-  border-bottom: 1px solid rgba(var(--primary-color-rgb), 0.1);
+  border-bottom: 1px solid rgba(var(--deep-red-rgb), 0.15);
 
   .nav-container {
     display: flex;
@@ -1235,18 +1274,18 @@ const loadParticipants = () => {
       color: white !important;
 
       :deep(.el-menu-item) {
-        color: #ffffff;
+        color: var(--text-color);
         font-size: 1rem;
         height: 60px;
         line-height: 60px;
 
         &:hover {
-          color: var(--primary-color);
+          color: var(--deep-red);
         }
 
         &.is-active {
-          color: var(--primary-color);
-          border-bottom: 2px solid var(--primary-color);
+          color: var(--deep-red);
+          border-bottom: 2px solid var(--deep-red);
         }
 
         .el-icon {
@@ -1339,6 +1378,7 @@ const loadParticipants = () => {
   position: relative;
   z-index: 2;
   padding: 20px;
+  width: 100%;
 }
 
 .content {
@@ -1346,9 +1386,9 @@ const loadParticipants = () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0 5%;
-  max-width: 1400px;
-  margin: 0 auto;
+  // padding: 0 5%;
+  // max-width: 1400px;
+  margin: 0 0;
   width: 100%;
 }
 
@@ -1396,12 +1436,12 @@ const loadParticipants = () => {
   max-width: 1200px;
 
   .lottery-card {
-    border-radius: 4px;
+    // border-radius: 4px;
     overflow: hidden;
-    background-color: #fff;
-    border: 1px solid rgba(var(--primary-color-rgb), 0.1);
-    box-shadow: var(--box-shadow, 0 1px 3px 0 rgba(0, 0, 0, 0.08));
-    transition: all 0.2s ease;
+    background-color: transparent;
+    // border: 1px solid rgba(var(--primary-color-rgb), 0.1);
+    // box-shadow: var(--box-shadow, 0 1px 3px 0 rgba(0, 0, 0, 0.08));
+    // transition: all 0.2s ease;
     height: 100%;
 
     .lottery-content {
@@ -1439,41 +1479,201 @@ const loadParticipants = () => {
           align-items: center;
         }
 
-        .award-selector {
-          flex: 0 0 280px;
-          background: rgba(226, 72, 72, 0.95);
-          border: 2px solid rgba(0, 0, 0, 0.1);
-          border-radius: 15px;
-          padding: 20px;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        .award-list-panel {
+          flex: 0 0 320px;
+          background: linear-gradient(145deg, #fff8f0, #ffeaa7);
+          border: 3px solid transparent;
+          border-image: linear-gradient(45deg, var(--deep-red), var(--gold-color), var(--warm-red)) 1;
+          border-radius: 20px;
+          box-shadow: 0 8px 32px rgba(var(--deep-red-rgb), 0.25), 0 0 20px rgba(var(--gold-color-rgb), 0.15);
           align-self: flex-start;
           margin-top: 10px;
+          overflow: hidden;
+          position: relative;
 
-          .award-select {
-            width: 100%;
-            margin-bottom: 15px;
+          &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(var(--warm-red-rgb), 0.06), rgba(var(--gold-color-rgb), 0.06));
+            border-radius: 20px;
+            z-index: 0;
+          }
 
-            :deep(.el-input__wrapper) {
-              background: rgba(255, 255, 255, 0.9);
-              border-radius: 8px;
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          &::after {
+            content: '🎊';
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 20px;
+            animation: float 3s ease-in-out infinite;
+            z-index: 2;
+          }
+
+          .award-list-header {
+            background: linear-gradient(135deg, var(--deep-red), var(--gold-color), var(--warm-red));
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+
+            &::before {
+              content: '';
+              position: absolute;
+              top: -50%;
+              left: -50%;
+              width: 200%;
+              height: 200%;
+              background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 10px,
+                rgba(255, 255, 255, 0.1) 10px,
+                rgba(255, 255, 255, 0.1) 20px
+              );
+              animation: shine 4s linear infinite;
             }
 
-            :deep(.el-input__inner) {
-              font-size: 1rem;
-              color: var(--text-color);
+            h3 {
+              margin: 0 0 8px 0;
+              font-size: 20px;
+              font-weight: 700;
+              text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+              position: relative;
+              z-index: 1;
+            }
+
+            .award-list-subtitle {
+              margin: 0;
+              font-size: 13px;
+              opacity: 0.95;
+              position: relative;
+              z-index: 1;
             }
           }
 
-          .award-desc {
-            font-size: 0.9rem;
-            color: rgba(0, 0, 0, 0.7);
-            margin: 0;
-            line-height: 1.4;
+          .award-list {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+            position: relative;
+            z-index: 1;
 
-            span {
-              display: block;
-              margin-bottom: 5px;
+            &::-webkit-scrollbar {
+              width: 8px;
+            }
+
+            &::-webkit-scrollbar-track {
+              background: rgba(var(--gold-color-rgb), 0.12);
+              border-radius: 4px;
+            }
+
+            &::-webkit-scrollbar-thumb {
+              background: linear-gradient(45deg, var(--deep-red), var(--gold-color));
+              border-radius: 4px;
+            }
+
+            .award-item {
+              margin-bottom: 12px;
+              border-radius: 12px;
+              border: 2px solid transparent;
+              cursor: pointer;
+              transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+              background: linear-gradient(135deg, #ffffff, #fefefe);
+              position: relative;
+              overflow: hidden;
+
+              &::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(var(--gold-color-rgb), 0.35), transparent);
+                transition: left 0.6s ease;
+              }
+
+              &:hover {
+                border-color: var(--gold-color);
+                transform: translateY(-3px) scale(1.02);
+                box-shadow: 0 8px 25px rgba(var(--warm-red-rgb), 0.25), 0 0 15px rgba(var(--gold-color-rgb), 0.35);
+
+                &::before {
+                  left: 100%;
+                }
+              }
+
+              &.active {
+                border-color: var(--deep-red);
+                background: linear-gradient(135deg, rgba(var(--warm-red-rgb), 0.18), rgba(var(--gold-color-rgb), 0.12));
+                box-shadow: 0 0 20px rgba(var(--deep-red-rgb), 0.45);
+                animation: glow-pulse 2s ease-in-out infinite;
+              }
+
+              &.disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+                background: linear-gradient(135deg, #f8f8f8, #f0f0f0);
+                filter: grayscale(0.5);
+
+                &:hover {
+                  border-color: transparent;
+                  transform: none;
+                  box-shadow: none;
+
+                  &::before {
+                    left: -100%;
+                  }
+                }
+              }
+
+              .award-item-content {
+                padding: 16px 18px;
+                position: relative;
+                z-index: 1;
+
+                .award-name {
+                  font-size: 17px;
+                  font-weight: 700;
+                  background: linear-gradient(45deg, var(--deep-red), var(--gold-color));
+                  -webkit-background-clip: text;
+                  -webkit-text-fill-color: transparent;
+                  background-clip: text;
+                  margin-bottom: 8px;
+                  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                }
+
+                .award-level {
+                  margin-bottom: 8px;
+                }
+
+                .award-description {
+                  font-size: 13px;
+                  color: #666;
+                  margin-bottom: 10px;
+                  line-height: 1.5;
+                }
+
+                .award-count {
+                  font-size: 13px;
+                  color: var(--deep-red);
+                  font-weight: 600;
+                  background: rgba(var(--warm-red-rgb), 0.12);
+                  padding: 4px 8px;
+                  border-radius: 6px;
+                  display: inline-block;
+
+                  .draw-count {
+                    color: var(--secondary-color);
+                    font-weight: 500;
+                  }
+                }
+              }
             }
           }
         }
@@ -1521,7 +1721,7 @@ const loadParticipants = () => {
               cursor: pointer;
 
               &:hover {
-                background: darken(#ff4d4d, 10%);
+                background: #e04444;
               }
             }
           }
@@ -1554,9 +1754,11 @@ const loadParticipants = () => {
           height: 300px;
           width: 100%;
           overflow: hidden;
-          border-radius: 4px;
-          background: rgba(var(--primary-color-rgb), 0.03);
-          border: 1px solid rgba(var(--primary-color-rgb), 0.1);
+          border-radius: 12px;
+          background: linear-gradient(145deg, var(--warm-white), #fff8f0);
+          border: 2px solid transparent;
+          border-image: linear-gradient(45deg, var(--deep-red), var(--gold-color), var(--warm-red)) 1;
+          box-shadow: 0 8px 25px rgba(var(--warm-red-rgb), 0.15), 0 0 15px rgba(var(--gold-color-rgb), 0.1);
 
           &::before,
           &::after {
@@ -1571,12 +1773,12 @@ const loadParticipants = () => {
 
           &::before {
             top: 0;
-            background: linear-gradient(to bottom, rgba(var(--primary-color-rgb), 0.1), transparent);
+            background: linear-gradient(to bottom, rgba(var(--deep-red-rgb), 0.12), transparent);
           }
 
           &::after {
             bottom: 0;
-            background: linear-gradient(to top, rgba(var(--primary-color-rgb), 0.1), transparent);
+            background: linear-gradient(to top, rgba(var(--deep-red-rgb), 0.12), transparent);
           }
 
           .rolling-container {
@@ -1601,18 +1803,20 @@ const loadParticipants = () => {
             transition: all 0.2s ease;
 
             &.current-name {
-              color: var(--primary-color);
+              color: var(--deep-red);
               font-size: 30px;
+              text-shadow: 0 2px 4px rgba(var(--warm-red-rgb), 0.3);
             }
 
             &.winner-highlight {
-              color: var(--secondary-color);
+              color: var(--gold-color);
               animation: winner-pulse 2s infinite;
-              background-color: rgba(var(--primary-color-rgb), 0.05);
-              border: 1px solid var(--secondary-color);
-              border-radius: 4px;
+              background: linear-gradient(135deg, rgba(var(--deep-red-rgb), 0.08), rgba(var(--gold-color-rgb), 0.08));
+              border: 2px solid var(--gold-color);
+              border-radius: 8px;
               margin: 0 20px;
               padding: 0 15px;
+              box-shadow: 0 4px 15px rgba(var(--gold-color-rgb), 0.3);
             }
           }
         }
@@ -1627,25 +1831,47 @@ const loadParticipants = () => {
           .stop-btn {
             min-width: 120px;
             height: 46px;
-            border-radius: 4px;
+            border-radius: 8px;
             font-size: 16px;
             font-weight: bold;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+
+            &::before {
+              content: '';
+              position: absolute;
+              top: 0;
+              left: -100%;
+              width: 100%;
+              height: 100%;
+              background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+              transition: left 0.6s ease;
+            }
 
             &:hover:not(:disabled) {
-              opacity: 0.9;
+              transform: translateY(-2px);
+              box-shadow: 0 6px 20px rgba(var(--warm-red-rgb), 0.3);
+
+              &::before {
+                left: 100%;
+              }
             }
           }
 
           .start-btn {
-            background-color: var(--secondary-color);
-            border: none;
-            color: #333;
+            // background: linear-gradient(45deg, var(--gold-color), var(--secondary-color));
+            background: url(/src/assets/images/start.png);
+            border: 2px solid var(--gold-color);
+            color: var(--text-color);
+            box-shadow: 0 4px 15px rgba(var(--gold-color-rgb), 0.3);
           }
 
           .stop-btn {
-            background-color: var(--primary-color);
-            border: none;
+            background: linear-gradient(45deg, var(--deep-red), var(--warm-red));
+            border: 2px solid var(--deep-red);
+            color: white;
+            box-shadow: 0 4px 15px rgba(var(--deep-red-rgb), 0.3);
           }
 
           // .control-row {
@@ -1673,131 +1899,230 @@ const loadParticipants = () => {
   max-width: 400px;
 
   .winner-card {
-    border-radius: 4px;
+    border-radius: 20px;
     overflow: hidden;
-    background-color: #fff;
-    border: 1px solid rgba(var(--primary-color-rgb), 0.1);
-    box-shadow: var(--box-shadow, 0 1px 3px 0 rgba(0, 0, 0, 0.08));
-    transition: all 0.2s ease;
+    background: linear-gradient(145deg, var(--warm-white), #fff8f0);
+    border: 3px solid transparent;
+    border-image: linear-gradient(45deg, var(--deep-red), var(--gold-color), var(--warm-red)) 1;
+    box-shadow: 0 12px 40px rgba(var(--warm-red-rgb), 0.25), 0 0 25px rgba(var(--gold-color-rgb), 0.18);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     height: 100%;
+    position: relative;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(45deg, rgba(var(--warm-red-rgb), 0.04), rgba(var(--gold-color-rgb), 0.04));
+      border-radius: 20px;
+      z-index: 0;
+    }
+
+    &::after {
+      content: '🏆✨';
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      font-size: 24px;
+      animation: float 3s ease-in-out infinite reverse;
+      z-index: 2;
+    }
+
+    &:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 60px rgba(var(--warm-red-rgb), 0.35), 0 0 40px rgba(var(--gold-color-rgb), 0.25);
+    }
 
     .winner-content {
-      padding: 20px;
+      padding: 25px;
       display: flex;
       flex-direction: column;
       height: 100%;
+      position: relative;
+      z-index: 1;
     }
 
     .winner-title {
       display: flex;
       align-items: center;
-      margin-bottom: 20px;
+      margin-bottom: 25px;
+      position: relative;
+
+      &::before {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--deep-red), var(--gold-color), var(--warm-red));
+        border-radius: 2px;
+        animation: shimmer 2s ease-in-out infinite;
+      }
 
       .winner-icon {
-        color: var(--secondary-color);
+        color: var(--gold-color);
         margin-right: 15px;
+        filter: drop-shadow(2px 2px 4px rgba(var(--warm-red-rgb), 0.35));
+        animation: bounce 2s ease-in-out infinite;
       }
 
       h2 {
-        font-size: 22px;
-        color: var(--primary-color);
+        font-size: 26px;
+        background: linear-gradient(45deg, var(--deep-red), var(--gold-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
         margin: 0;
-        font-weight: bold;
+        font-weight: 800;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
       }
     }
 
     .winner-list {
       flex: 1;
       overflow-y: auto;
-      padding: 5px;
-      scroll-behavior: smooth; /* 添加平滑滚动效果 */
+      padding: 10px;
+      scroll-behavior: smooth;
       max-height: 400px;
       position: relative;
 
       &::-webkit-scrollbar {
-        width: 6px;
+        width: 8px;
       }
 
       &::-webkit-scrollbar-track {
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 3px;
+        background: rgba(var(--gold-color-rgb), 0.12);
+        border-radius: 4px;
       }
 
       &::-webkit-scrollbar-thumb {
-        background: rgba(var(--primary-color-rgb), 0.2);
-        border-radius: 3px;
+        background: linear-gradient(45deg, var(--deep-red), var(--gold-color));
+        // border-radius: 4px;
       }
-      
+
       &::-webkit-scrollbar-thumb:hover {
-        background: rgba(var(--primary-color-rgb), 0.4);
+        background: linear-gradient(45deg, var(--warm-red), var(--secondary-color));
       }
 
       .winner-item {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 10px 15px;
-        margin-bottom: 8px;
-        border-radius: 4px;
-        transition: all 0.3s ease;
+        padding: 14px 18px;
+        margin-bottom: 12px;
+        border-radius: 12px;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
-        background-color: rgba(var(--primary-color-rgb), 0.03);
-        border: 1px solid rgba(var(--primary-color-rgb), 0.1);
-        animation: fadeIn 0.5s ease-out;
+        background: linear-gradient(135deg, #ffffff, #fefefe);
+        border: 2px solid transparent;
+        animation: fadeInUp 0.6s ease-out;
         transform-origin: center;
-        
-        @keyframes fadeIn {
+        overflow: hidden;
+
+        &::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(var(--gold-color-rgb), 0.25), transparent);
+          transition: left 0.6s ease;
+        }
+
+        &::after {
+          content: '🎉';
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          font-size: 16px;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+
+        @keyframes fadeInUp {
           from {
             opacity: 0;
-            transform: translateY(10px);
+            transform: translateY(20px) scale(0.9);
           }
+
           to {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
           }
         }
 
         &:hover {
-          border-color: var(--primary-color);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-          background-color: rgba(var(--primary-color-rgb), 0.05);
+          border-color: var(--gold-color);
+          transform: translateY(-3px) scale(1.02);
+          box-shadow: 0 8px 25px rgba(var(--warm-red-rgb), 0.25), 0 0 15px rgba(var(--gold-color-rgb), 0.35);
+          background: linear-gradient(135deg, rgba(var(--gold-color-rgb), 0.06), rgba(var(--warm-red-rgb), 0.06));
+
+          &::before {
+            left: 100%;
+          }
+
+          &::after {
+            opacity: 1;
+          }
 
           .delete-winner-btn {
             opacity: 1;
+            transform: translateY(-50%) scale(1.1);
           }
-          
-          .winner-name, .winner-award {
-            color: var(--primary-color);
+
+          .winner-name {
+            color: var(--deep-red);
+          }
+
+          .winner-award {
+            transform: scale(1.05);
           }
         }
 
         .winner-name {
-          font-size: 14px;
-          font-weight: 500;
-          color: var(--text-color);
+          font-size: 15px;
+          font-weight: 600;
+          color: #333;
+          transition: color 0.3s ease;
         }
 
         .winner-award {
           font-size: 13px;
-          font-weight: bold;
-          padding: 3px 8px;
-          border-radius: 4px;
-          background-color: var(--primary-color);
+          font-weight: 700;
+          padding: 6px 12px;
+          border-radius: 8px;
+          background: linear-gradient(45deg, var(--deep-red), var(--gold-color));
           color: #fff;
+          text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+          transition: transform 0.3s ease;
+          box-shadow: 0 2px 8px rgba(var(--warm-red-rgb), 0.35);
         }
 
         .delete-winner-btn {
           opacity: 0;
-          transition: opacity 0.2s ease;
+          transition: all 0.3s ease;
           position: absolute;
-          right: 10px;
+          right: 12px;
           top: 50%;
           transform: translateY(-50%);
-          width: 24px;
-          height: 24px;
+          width: 28px;
+          height: 28px;
           padding: 0;
-          color: var(--primary-color);
+          color: var(--deep-red);
+          background: rgba(var(--warm-red-rgb), 0.12);
+          border-radius: 50%;
+          border: 2px solid var(--deep-red);
+
+          &:hover {
+            background: var(--deep-red);
+            color: white;
+            transform: translateY(-50%) scale(1.2);
+          }
         }
       }
     }
@@ -1830,6 +2155,7 @@ const loadParticipants = () => {
 }
 
 @keyframes glow {
+
   0%,
   100% {
     text-shadow: 0 0 5px rgba(var(--secondary-color-rgb), 0.5);
@@ -1837,6 +2163,36 @@ const loadParticipants = () => {
 
   50% {
     text-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.5);
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(var(--warm-red-rgb), 0.45);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(var(--gold-color-rgb), 0.65), 0 0 40px rgba(var(--deep-red-rgb), 0.35);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-8px);
+  }
+  60% {
+    transform: translateY(-4px);
   }
 }
 
@@ -1881,6 +2237,7 @@ const loadParticipants = () => {
 }
 
 @keyframes winner-pulse {
+
   0%,
   100% {
     transform: scale(1);
@@ -1994,17 +2351,23 @@ const loadParticipants = () => {
 }
 
 @keyframes float {
+
   0%,
   100% {
-    transform: translateY(0);
+    transform: translateY(0) rotate(0deg);
   }
 
-  50% {
-    transform: translateY(-5px);
+  33% {
+    transform: translateY(-8px) rotate(5deg);
+  }
+
+  66% {
+    transform: translateY(-3px) rotate(-3deg);
   }
 }
 
 @keyframes glow {
+
   0%,
   100% {
     color: rgba(var(--primary-color-rgb), 0.9);
@@ -2016,6 +2379,7 @@ const loadParticipants = () => {
 }
 
 @keyframes winner-pulse {
+
   0%,
   100% {
     transform: scale(1);
@@ -2056,7 +2420,8 @@ const loadParticipants = () => {
   border-top: 1px solid rgba(var(--primary-color-rgb), 0.1);
   padding: 10px 0;
   z-index: 10;
-  cursor: grab; /* 指示可拖动 */
+  cursor: grab;
+  /* 指示可拖动 */
   transition: background-color 0.3s ease;
 }
 
@@ -2066,7 +2431,8 @@ const loadParticipants = () => {
 }
 
 .winner-scroll-container:active {
-  cursor: grabbing; /* 指示正在拖动 */
+  cursor: grabbing;
+  /* 指示正在拖动 */
 }
 
 .winner-scroll-wrapper {
@@ -2077,7 +2443,8 @@ const loadParticipants = () => {
 .winner-scroll {
   display: flex;
   white-space: nowrap;
-  transition: transform 0.1s ease-out; /* 使手动滚动更平滑 */
+  transition: transform 0.1s ease-out;
+  /* 使手动滚动更平滑 */
 }
 
 .winner-scroll-item {
@@ -2115,7 +2482,7 @@ const loadParticipants = () => {
   border-radius: 4px;
 }
 
-.lottery-card,
+// .lottery-card,
 .winner-card {
   position: relative;
   overflow: hidden;
@@ -2133,10 +2500,11 @@ const loadParticipants = () => {
     gap: 15px;
   }
 
-  .award-selector {
+  .award-list-panel {
     max-width: 500px;
     margin: 0 auto;
     width: 100%;
+    flex: none;
   }
 }
 

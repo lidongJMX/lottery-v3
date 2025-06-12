@@ -7,16 +7,22 @@
   box-sizing: border-box;
 }
 
-// 主题颜色 - 年会氛围
+// 主题颜色 - 中国风年会氛围
 :root {
-  --primary-color: #e74c3c; // 喜庆红色
-  --primary-color-rgb: 231, 76, 60;
-  --secondary-color: #f1c40f; // 金色
-  --secondary-color-rgb: 241, 196, 15;
-  --accent-color: #3498db; // 点缀蓝色
-  --accent-color-rgb: 52, 152, 219;
-  --text-color: #333;
-  --background-color: #fff;
+  --primary-color: #d32f2f; // 深红色，与背景协调
+  --primary-color-rgb: 211, 47, 47;
+  --secondary-color: #ff8f00; // 橙金色
+  --secondary-color-rgb: 255, 143, 0;
+  --accent-color: #c62828; // 深红色调
+  --accent-color-rgb: 198, 40, 40;
+  --text-color: #2c1810; // 深棕色文字
+  --background-color: #fff8f0; // 温暖白色
+  --gold-color: #ffc107; // 金黄色
+  --gold-color-rgb: 255, 193, 7;
+  --warm-red: #e53935; // 温暖红色
+  --warm-red-rgb: 229, 57, 53;
+  --deep-red: #b71c1c; // 深红色
+  --deep-red-rgb: 183, 28, 28;
 }
 
 // 全局样式
