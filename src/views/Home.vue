@@ -157,6 +157,25 @@
       </div>
     </div>
   </el-dialog>
+
+  <!-- 底部导航栏 -->
+  <div class="bottom-navigation" @mouseenter="showBottomNav = true" @mouseleave="showBottomNav = false"
+    :class="{ 'nav-visible': showBottomNav }">
+    <div class="nav-content">
+      <div class="nav-item" @click="toggleFullscreen">
+        <el-icon>
+          <FullScreen />
+        </el-icon>
+        <span>{{ isFullscreen ? '退出全屏' : '进入全屏' }}</span>
+      </div>
+      <div class="nav-item" @click="toggleBackgroundMusic">
+        <el-icon>
+          <SwitchButton />
+        </el-icon>
+        <span>{{ backgroundMusicEnabled ? '关闭音效' : '开启音效' }}</span>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -200,6 +219,55 @@ const backgroundMusicEnabled = ref(false)
 const currentMusicUrl = ref('')
 const musicVolume = ref(50)
 const audioElement = ref(null)
+
+// 底部导航栏相关
+const showBottomNav = ref(false)
+const isFullscreen = ref(false)
+
+// 全屏控制
+const toggleFullscreen = () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().then(() => {
+      isFullscreen.value = true
+      ElMessage.success('已进入全屏模式')
+    }).catch(err => {
+      ElMessage.error('进入全屏失败: ' + err.message)
+    })
+  } else {
+    document.exitFullscreen().then(() => {
+      isFullscreen.value = false
+      ElMessage.success('已退出全屏模式')
+    }).catch(err => {
+      ElMessage.error('退出全屏失败: ' + err.message)
+    })
+  }
+}
+
+// 监听全屏状态变化
+const handleFullScreenChange = () => {
+  isFullscreen.value = !!document.fullscreenElement
+}
+
+// 切换背景音乐
+const toggleBackgroundMusic = () => {
+  backgroundMusicEnabled.value = !backgroundMusicEnabled.value
+  if (backgroundMusicEnabled.value) {
+    if (currentMusicUrl.value && audioElement.value) {
+      audioElement.value.play().catch(error => {
+        console.log('播放背景音乐失败:', error)
+        ElMessage.warning('播放背景音乐失败，请检查音频文件')
+      })
+    }
+    ElMessage.success('背景音乐已开启')
+  } else {
+    if (audioElement.value) {
+      audioElement.value.pause()
+    }
+    ElMessage.success('背景音乐已关闭')
+  }
+  // 保存设置到localStorage
+  localStorage.setItem('backgroundMusicEnabled', backgroundMusicEnabled.value.toString())
+}
 
 // 背景图片相关
 const backgroundOptions = [
@@ -1081,10 +1149,10 @@ const toggleFullScreen = () => {
   }
 }
 
-// 监听全屏状态变化
-const handleFullScreenChange = () => {
-  isFullScreen.value = !!document.fullscreenElement
-}
+// // 监听全屏状态变化
+// const handleFullScreenChange = () => {
+//   isFullScreen.value = !!document.fullscreenElement
+// }
 
 // 加载参与者列表
 const loadParticipants = () => {
@@ -1528,13 +1596,11 @@ onUnmounted(() => {
               left: -50%;
               width: 200%;
               height: 200%;
-              background: repeating-linear-gradient(
-                45deg,
-                transparent,
-                transparent 10px,
-                rgba(255, 255, 255, 0.1) 10px,
-                rgba(255, 255, 255, 0.1) 20px
-              );
+              background: repeating-linear-gradient(45deg,
+                  transparent,
+                  transparent 10px,
+                  rgba(255, 255, 255, 0.1) 10px,
+                  rgba(255, 255, 255, 0.1) 20px);
               animation: shine 4s linear infinite;
             }
 
@@ -2167,9 +2233,12 @@ onUnmounted(() => {
 }
 
 @keyframes glow-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 20px rgba(var(--warm-red-rgb), 0.45);
   }
+
   50% {
     box-shadow: 0 0 30px rgba(var(--gold-color-rgb), 0.65), 0 0 40px rgba(var(--deep-red-rgb), 0.35);
   }
@@ -2179,18 +2248,26 @@ onUnmounted(() => {
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
 }
 
 @keyframes bounce {
-  0%, 20%, 50%, 80%, 100% {
+
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
     transform: translateY(0);
   }
+
   40% {
     transform: translateY(-8px);
   }
+
   60% {
     transform: translateY(-4px);
   }
@@ -2600,6 +2677,98 @@ onUnmounted(() => {
   .lottery-card,
   .winner-card {
     height: 450px;
+  }
+}
+
+/* 底部导航栏样式 */
+.bottom-navigation {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(100%);
+  background: #141415;
+  backdrop-filter: blur(10px);
+  border-radius: 20px 20px 0 0;
+  padding: 15px 30px;
+  z-index: 1000;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  min-width: 300px;
+  opacity: 0.5;
+}
+
+.bottom-navigation:hover,
+.bottom-navigation.nav-visible {
+  transform: translateX(-50%) translateY(0);
+}
+
+.bottom-navigation::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.nav-content {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 15px;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 1);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.nav-item .el-icon {
+  font-size: 1.1rem;
+}
+
+.nav-item span {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .bottom-navigation {
+    min-width: 250px;
+    padding: 12px 20px;
+  }
+
+  .nav-content {
+    gap: 15px;
+  }
+
+  .nav-item {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+
+  .nav-item span {
+    display: none;
   }
 }
 </style>
