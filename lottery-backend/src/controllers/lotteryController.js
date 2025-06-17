@@ -112,6 +112,7 @@ const lotteryController = {
       const allWinners = [];
       const updatedAwards = [];
       const selectedParticipants = new Set();
+      const allWinnerRecords = []; // 存储所有待创建的Winner记录
 
       // 跟踪未中奖人员
       let neverWonParticipants = participants.filter(p => p.win_count === 0);
@@ -276,14 +277,13 @@ const lotteryController = {
         // 更新剩余奖品数
         remainingPrizes -= winners.length;
 
-        // ... 其余代码保持不变（记录中奖信息、更新参与者状态等）
-        await Promise.all(winners.map(winner =>
-          Winner.create({
-            participant_id: winner.id,
-            award_id: award.id,
-            epoch: currentEpoch.epoch + 1
-          }, { transaction })
-        ));
+        // 暂存中奖者信息，稍后统一创建Winner记录
+        const winnerRecords = winners.map(winner => ({
+          participant_id: winner.id,
+          award_id: award.id,
+          winner: winner // 保存完整的winner信息用于后续处理
+        }));
+        allWinnerRecords.push(...winnerRecords);
 
         await Promise.all(winners.map(winner =>
           Participant.update(
@@ -327,17 +327,93 @@ const lotteryController = {
         console.warn(`警告：仍有 ${neverWonParticipants.length} 人未中奖，剩余奖品 ${remainingPrizes}`);
       }
 
-      // 更新轮次状态
-      await Epoch.update(
-        {
-          status: 0,
-          epoch: sequelize.literal('epoch + 1')
+      // 检查当前轮次中每个奖项是否已被抽过
+      const currentRoundWinners = await Winner.findAll({
+        where: { epoch: currentEpoch.epoch },
+        include: [{ model: Award }],
+        transaction
+      });
+      
+      // 获取本轮已抽过的奖项ID
+      const currentRoundDrawnAwards = new Set();
+      currentRoundWinners.forEach(winner => {
+        currentRoundDrawnAwards.add(winner.award_id);
+      });
+      
+      // 获取所有有剩余数量的奖项
+      const allAvailableAwards = await Award.findAll({
+        where: {
+          remaining_count: {
+            [sequelize.Op.gt]: 0
+          }
         },
-        {
-          where: { epoch_id: currentEpoch.epoch_id },
-          transaction
+        transaction
+      });
+      
+      // 检查本次要抽的奖项是否在当前轮次已被抽过
+      const currentAwardId = awards_to_draw[0].id;
+      const shouldAdvanceRound = currentRoundDrawnAwards.has(currentAwardId);
+      
+      let finalEpoch = currentEpoch.epoch;
+      
+      if (shouldAdvanceRound) {
+        // 检查是否所有其他有剩余的奖项都已在本轮被抽过，或者没有其他奖项可抽
+        const otherAvailableAwards = allAvailableAwards.filter(award => award.id !== currentAwardId);
+        const allOtherAwardsDrawn = otherAvailableAwards.every(award => 
+          currentRoundDrawnAwards.has(award.id)
+        );
+        
+        if (allOtherAwardsDrawn || otherAvailableAwards.length === 0) {
+          // 所有其他奖项都被抽过或没有其他奖项，可以进入下一轮
+          finalEpoch = currentEpoch.epoch + 1;
+          await Epoch.update(
+            {
+              status: 0,
+              epoch: sequelize.literal('epoch + 1')
+            },
+            {
+              where: { epoch_id: currentEpoch.epoch_id },
+              transaction
+            }
+          );
+          console.log(`轮次递增：第${finalEpoch}轮开始，因为所有其他奖项都已被抽过或无其他奖项可抽`);
+        } else {
+          // 还有其他奖项未被抽过，不能抽取当前奖项
+          await transaction.rollback();
+          const undrawnAwards = otherAvailableAwards
+            .filter(award => !currentRoundDrawnAwards.has(award.id))
+            .map(award => award.name);
+          return res.status(400).json({
+            success: false,
+            message: `当前奖项"${awards_to_draw[0].name}"在本轮已被抽过，请先抽取其他未抽过的奖项：${undrawnAwards.join('、')}`,
+            undrawn_awards: undrawnAwards
+          });
         }
-      );
+      } else {
+        // 当前奖项在本轮未被抽过，保持当前轮次
+        await Epoch.update(
+          { status: 0 },
+          {
+            where: { epoch_id: currentEpoch.epoch_id },
+            transaction
+          }
+        );
+        console.log(`保持当前轮次：第${currentEpoch.epoch}轮继续，奖项"${awards_to_draw[0].name}"在本轮首次抽取`);
+      }
+      
+      // 更新中奖者记录的轮次
+       for (let winner of allWinners) {
+         winner.epoch = finalEpoch;
+       }
+       
+       // 统一创建所有Winner记录，使用最终确定的轮次
+       await Promise.all(allWinnerRecords.map(record =>
+         Winner.create({
+           participant_id: record.participant_id,
+           award_id: record.award_id,
+           epoch: finalEpoch
+         }, { transaction })
+       ));
 
       await transaction.commit();
 
@@ -417,6 +493,84 @@ const lotteryController = {
     } catch (error) {
       if (transaction) await transaction.rollback();
       console.error('清除数据库失败:', error);
+      res.status(500).json({ message: '服务器错误' });
+    }
+  },
+
+  checkRoundAward: async (req, res) => {
+    try {
+      const { award_id, award_name } = req.body;
+      
+      if (!award_id) {
+        return res.status(400).json({ message: '奖项ID不能为空' });
+      }
+
+      // 获取当前轮次
+      const currentEpoch = await Epoch.findOne();
+      console.log('当前轮次:', currentEpoch);
+      if (!currentEpoch) {
+        return res.status(500).json({ message: '无法获取当前轮次信息' });
+      }
+
+      const currentRound = currentEpoch.epoch;
+
+      // 检查当前奖项在本轮是否已被抽取
+      const existingWinner = await Winner.findOne({
+        where: {
+          award_id: award_id,
+          epoch: currentRound
+        }
+      });
+      console.log('existingWinner:', existingWinner);
+      if (existingWinner) {
+        // 查询本轮所有已抽取的奖项
+        const currentRoundDrawnAwards = await Winner.findAll({
+          where: { epoch: currentRound },
+          attributes: ['award_id'],
+          include: [{
+            model: Award,
+            attributes: ['name']
+          }],
+          group: ['award_id', 'Award.id']
+        });
+
+        // 查询所有有剩余数量的奖项
+        const allAvailableAwards = await Award.findAll({
+           where: {
+             remaining_count: {
+               [Op.gt]: 0
+             }
+           },
+           attributes: ['id', 'name', 'remaining_count']
+         });
+
+        // 找出其他还未抽取的奖项
+        const drawnAwardIds = currentRoundDrawnAwards.map(w => w.award_id);
+        const otherAvailableAwards = allAvailableAwards.filter(award => 
+          !drawnAwardIds.includes(award.id)
+        );
+
+        if (otherAvailableAwards.length > 0) {
+          const undrawnAwardNames = otherAvailableAwards.map(award => award.name).join('、');
+          return res.status(400).json({
+            message: `奖项「${award_name}」在第${currentRound}轮已被抽取，不能重复抽取。当前轮次还有以下奖项未抽取：${undrawnAwardNames}。请先抽取这些奖项，或等待进入下一轮。`,
+            currentRound: currentRound,
+            undrawnAwards: otherAvailableAwards.map(award => ({
+              id: award.id,
+              name: award.name,
+              remaining_count: award.remaining_count
+            }))
+          });
+        }
+      }
+
+      // 校验通过
+      res.json({ 
+        message: '校验通过',
+        currentRound: currentRound
+      });
+    } catch (error) {
+      console.error('校验奖项失败:', error);
       res.status(500).json({ message: '服务器错误' });
     }
   }

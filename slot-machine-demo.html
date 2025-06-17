@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>老虎机滚动抽奖</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .lottery-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .title {
+            color: #fff;
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .slot-machine {
+            width: 400px;
+            height: 300px;
+            margin: 0 auto 30px;
+            position: relative;
+            overflow: hidden;
+            border: 4px solid #ffd700;
+            border-radius: 15px;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            box-shadow: 
+                inset 0 0 20px rgba(255, 215, 0, 0.3),
+                0 0 30px rgba(255, 215, 0, 0.6),
+                0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .slot-machine::before,
+        .slot-machine::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 50px;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .slot-machine::before {
+            top: 0;
+            background: linear-gradient(to bottom, rgba(255, 107, 107, 0.8) 0%, transparent 100%);
+        }
+
+        .slot-machine::after {
+            bottom: 0;
+            background: linear-gradient(to top, rgba(255, 107, 107, 0.8) 0%, transparent 100%);
+        }
+
+        .names-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 900px; /* 3倍容器高度 */
+            display: flex;
+            flex-direction: column;
+            padding: 0 20px;
+        }
+
+        .name {
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .name.highlight {
+            transform: scale(1.1);
+            color: #ffd700;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+        }
+
+        .name.winner {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: winnerPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes winnerPulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.2);
+            }
+        }
+
+        @keyframes slotScroll {
+            0% {
+                transform: translateY(0);
+            }
+            100% {
+                transform: translateY(-150px);
+            }
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-start {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-start:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6);
+        }
+
+        .btn-stop {
+            background: linear-gradient(45deg, #f44336, #da190b);
+            color: white;
+            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.4);
+        }
+
+        .btn-stop:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(244, 67, 54, 0.6);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            color: #fff;
+            font-size: 1.5rem;
+            margin-top: 20px;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .winner-announcement {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: bold;
+            animation: winnerGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes winnerGlow {
+            0%, 100% {
+                filter: brightness(1);
+            }
+            50% {
+                filter: brightness(1.5);
+            }
+        }
+
+        .lights {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            border-radius: 20px;
+            background: linear-gradient(45deg, transparent, rgba(255, 215, 0, 0.3), transparent);
+            animation: lightRotate 3s linear infinite;
+            z-index: -1;
+        }
+
+        @keyframes lightRotate {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="lottery-container">
+        <h1 class="title">🎰 老虎机抽奖 🎰</h1>
+        
+        <div class="slot-machine">
+            <div class="lights"></div>
+            <div class="names-container" id="namesContainer">
+                <!-- 名字列表将通过JavaScript动态生成 -->
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn btn-start" id="startBtn" onclick="startLottery()">开始抽奖</button>
+            <button class="btn btn-stop" id="stopBtn" onclick="stopLottery()" disabled>停止抽奖</button>
+        </div>
+        
+        <div class="result" id="result">点击"开始抽奖"开始游戏</div>
+    </div>
+
+    <script>
+        // 参与抽奖的名单
+        const participants = [
+            '张三', '李四', '王五', '赵六', '钱七',
+            '孙八', '周九', '吴十', '郑一', '王二',
+            '李三', '张四', '刘五', '陈六', '杨七',
+            '黄八', '周九', '徐十', '朱一', '林二'
+        ];
+
+        let isRunning = false;
+        let animationId = null;
+        let highlightInterval = null;
+        let namesContainer = document.getElementById('namesContainer');
+        let startBtn = document.getElementById('startBtn');
+        let stopBtn = document.getElementById('stopBtn');
+        let result = document.getElementById('result');
+
+        // 初始化名字列表
+        function initializeNames() {
+            // 创建三倍的名字列表以实现无限滚动
+            const tripleNames = [...participants, ...participants, ...participants];
+            
+            namesContainer.innerHTML = '';
+            tripleNames.forEach(name => {
+                const nameElement = document.createElement('div');
+                nameElement.className = 'name';
+                nameElement.textContent = name;
+                namesContainer.appendChild(nameElement);
+            });
+        }
+
+        // 开始抽奖
+        function startLottery() {
+            if (isRunning) return;
+            
+            isRunning = true;
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            result.textContent = '抽奖进行中...';
+            result.className = 'result';
+            
+            // 重置所有名字样式
+            document.querySelectorAll('.name').forEach(name => {
+                name.classList.remove('highlight', 'winner');
+            });
+            
+            // 开始滚动动画
+            namesContainer.style.animation = 'slotScroll 0.1s infinite linear';
+            
+            // 随机高亮效果
+            highlightInterval = setInterval(() => {
+                if (!isRunning) return;
+                
+                // 清除之前的高亮
+                document.querySelectorAll('.name').forEach(name => {
+                    name.classList.remove('highlight');
+                });
+                
+                // 随机高亮一个名字
+                const names = document.querySelectorAll('.name');
+                const randomIndex = Math.floor(Math.random() * names.length);
+                names[randomIndex].classList.add('highlight');
+            }, 100);
+        }
+
+        // 停止抽奖
+        function stopLottery() {
+            if (!isRunning) return;
+            
+            isRunning = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            
+            // 停止动画
+            namesContainer.style.animation = 'none';
+            
+            // 清除高亮定时器
+            if (highlightInterval) {
+                clearInterval(highlightInterval);
+                highlightInterval = null;
+            }
+            
+            // 随机选择获奖者
+            const winner = participants[Math.floor(Math.random() * participants.length)];
+            
+            // 计算目标位置（让获奖者显示在中间）
+            const winnerIndex = participants.indexOf(winner);
+            const itemHeight = 150;
+            const containerHeight = 300;
+            const centerOffset = (containerHeight - itemHeight) / 2;
+            const targetOffset = winnerIndex * itemHeight - centerOffset;
+            
+            // 平滑滚动到目标位置
+            namesContainer.style.transition = 'transform 2s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+            namesContainer.style.transform = `translateY(-${Math.max(0, targetOffset)}px)`;
+            
+            // 延迟显示结果
+            setTimeout(() => {
+                // 高亮获奖者
+                document.querySelectorAll('.name').forEach((name, index) => {
+                    name.classList.remove('highlight');
+                    if (name.textContent === winner && index < participants.length) {
+                        name.classList.add('winner');
+                    }
+                });
+                
+                // 显示获奖结果
+                result.innerHTML = `🎉 恭喜 <strong>${winner}</strong> 中奖！🎉`;
+                result.className = 'result winner-announcement';
+                
+                // 重置动画状态
+                setTimeout(() => {
+                    namesContainer.style.transition = '';
+                    namesContainer.style.transform = '';
+                    initializeNames();
+                }, 3000);
+            }, 2000);
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('load', () => {
+            initializeNames();
+        });
+
+        // 键盘快捷键
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (!isRunning) {
+                    startLottery();
+                } else {
+                    stopLottery();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

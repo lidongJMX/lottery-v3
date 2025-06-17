@@ -35,6 +35,7 @@ router.get('/winners/department-win-rate', auth, dashboardController.getDepartme
 // 抽奖路由
 router.post('/lottery/start', auth, lotteryController.start);
 router.post('/lottery/stop', lotteryController.stop);
+router.post('/lottery/check-round-award', lotteryController.checkRoundAward);
 router.post('/lottery/reset', auth, lotteryController.reset);
 router.post('/lottery/clearAllData', auth, lotteryController.clearAllData);
 

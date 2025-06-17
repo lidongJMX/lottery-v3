@@ -1,5 +1,5 @@
 <template>
-  <div class="home-container" :style="{ backgroundImage: `url(${currentBackground})` }">
+  <div class="home-container">
     <div class="background">
       <video class="videoBg" src="../assets/背景视频.mp4" autoplay="autoplay" loop="loop" muted="muted"
         data-src="../assets/背景视频.mp4"
@@ -23,7 +23,7 @@
             <div class="lottery-container">
               <div class="left-award">
                 <div class="lottory_award_box">
-                  <img src="/src/assets/img/prizebg.png" style="width: 210px; height: 210px;">
+                  <img src="/src/assets/img/prizebg.png" style="width: 150px; height: 150px;">
                   <div class="limitbox">{{ currentAwardDescription }}</div>
                 </div>
                 <div class="prize_number">
@@ -65,6 +65,7 @@
                   <div class="slot-controls">
                     <div class="slot-btn slot-btn-start" @click="startLottery" :disabled="isSlotRunning"></div>
                     <div class="slot-btn slot-btn-stop" @click="stopLottery" :disabled="!isSlotRunning"></div>
+                    <div class="slot-btn slot-btn-showDialog" @click="showWinnerDialog = true" :disabled="isSlotRunning"></div>
                   </div>
                 </div>
               </div>
@@ -123,12 +124,15 @@
       </div>
       <div class="winner-popup-close" @click="showWinnerDialog = false"></div>
       <div class="winner-popup-content">
+        <div class="winner-popup-header-title">
+          <h5>{{ currentAwardName }}</h5>
+          <p v-if="currentAwardWinners.length === 0" class="no-winners-text">当前奖项暂无中奖者</p>
+        </div>
         <div class="winner-popup-grid">
-          <div v-for="(winner, index) in lastRoundWinners" :key="index" class="winner-popup-item"
+          <div v-for="(winner, index) in currentAwardWinners" :key="index" class="winner-popup-item"
             :style="{ backgroundColor: getWinnerColor(winner) + '20' }">
             <div style=" font-weight: bold;">{{ winner.name }}</div>
             <div style=" color: #e79f47;">{{ winner.department || '未知单位' }}</div>
-            <!-- <div style="font-size: 14px; margin-top: 0px;" :style="{ color: getWinnerColor(winner) }">{{ getWinnerAwardName(winner) }}</div> -->
           </div>
         </div>
       </div>
@@ -545,6 +549,21 @@ const lastRoundWinners = computed(() => {
   return winners.value.filter(w => (w.roundId || 0) === lastRoundId)
 })
 
+// 当前轮次当前奖项的中奖者
+const currentAwardWinners = computed(() => {
+  if (winners.value.length === 0 || !currentAward.value) return []
+
+  // 找出最后一轮的中奖记录
+  const lastRoundId = Math.max(...winners.value.map(w => w.roundId || w.epoch || 0))
+  
+  // 过滤当前轮次且当前奖项的中奖者
+  return winners.value.filter(w => {
+    const winnerRoundId = w.roundId || w.epoch || 0
+    const winnerAwardName = w.award_name || w.award || ''
+    return winnerRoundId === lastRoundId && winnerAwardName === currentAward.value
+  })
+})
+
 
 // 页面卸载时清理
 onUnmounted(() => {
@@ -601,10 +620,11 @@ const loadWinners = () => {
       } else {
         winners.value = data
       }
-      // 确保每个winner对象都有roundId
+      // 确保每个winner对象都有roundId和award_name
       winners.value = winners.value.map(winner => ({
         ...winner,
-        roundId: winner.roundId || winner.round_id || 0
+        roundId: winner.roundId || winner.round_id || winner.epoch || 0,
+        award_name: winner.award_name || winner.Award?.name || winner.award || '未知奖项'
       }))
       console.log('成功获取最后一轮中奖者列表:', winners.value)
     })
@@ -654,12 +674,37 @@ const startLottery = async () => {
 
   // if (isDrawing.value) return
   if (isSlotRunning.value) return
+  
   // 检查是否还有剩余奖项
   const award = selectedAward.value
   console.log('当前奖项:', award)
   if (!award || award.remaining_count <= 0) {
     ElMessage.warning('当前奖项已抽完！')
     return
+  }
+
+  // 校验同一轮中同一奖项不能重复抽取
+  try {
+    const checkResponse = await fetch('/api/lottery/check-round-award', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        award_id: award.id,
+        award_name: award.name
+      })
+    });
+    
+    if (!checkResponse.ok) {
+      const errorData = await checkResponse.json();
+      ElMessage.warning(errorData.message || '校验失败');
+      return;
+    }
+  } catch (error) {
+    console.error('校验请求失败:', error);
+    ElMessage.error('校验请求失败，请重试');
+    return;
   }
 
   try {
@@ -795,7 +840,7 @@ const stopLottery = async () => {
       const targetOffset = randomIndex * itemHeight - centerOffset
 
       // 平滑过渡到最终位置
-      namesContainer.value.style.transition = 'transform 1.2s cubic-bezier(0.23, 1, 0.32, 1)'
+      namesContainer.value.style.transition = 'transform 3s cubic-bezier(0.23, 1, 0.32, 1)'
       namesContainer.value.style.transform = `translateY(-${Math.max(0, targetOffset)}px)`
 
       // 播放中奖音效
@@ -1101,96 +1146,138 @@ const initBackgroundMusic = () => {
 <style lang="scss" scoped>
 .home-container {
   display: grid;
-  grid-template-rows: auto 1fr;
+  // grid-template-rows: auto 1fr;
+  width: 100vw;
   height: 100vh;
   background-size: cover;
   background-position: center;
   overflow: hidden;
   position: relative;
+  margin: 0;
+  padding: 0;
 }
 
 .background {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
   z-index: 1;
   pointer-events: none;
+  // background-size: stretch;
 
   .videoBg {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
     object-fit: cover;
+    top: 0;
+    right: 0;
+    width: 100vw;
+    height: 100vh;
     z-index: -1;
+    transition: opacity 0.3s ease;
   }
 }
 
-.el-header {
-  background-color: rgba(var(--warm-white-rgb), 0.95);
-  color: var(--text-color);
-  padding: 0 20px;
-  border-bottom: 1px solid rgba(var(--deep-red-rgb), 0.15);
+/* 背景视频响应式优化 */
+@media (max-width: 767px) {
+  .videoBg {
+    opacity: 0.7; /* 在移动设备上降低视频透明度以提高性能 */
+  }
+}
 
-  .nav-container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 100%;
+@media (max-width: 479px) {
+  .videoBg {
+    opacity: 0.5;
+    filter: blur(1px); /* 轻微模糊以减少移动设备负载 */
+  }
+}
 
-    .logo {
-      font-size: 22px;
-      font-weight: bold;
-      color: var(--primary-color);
-    }
+@media (max-width: 319px) {
+  .videoBg {
+    opacity: 0.3;
+    filter: blur(2px);
+  }
+}
 
-    .nav-menu {
-      background: transparent;
-      border-bottom: none;
-      color: white !important;
-
-      :deep(.el-menu-item) {
-        color: var(--text-color);
-        font-size: 1rem;
-        height: 60px;
-        line-height: 60px;
-
-        &:hover {
-          color: var(--deep-red);
-        }
-
-        &.is-active {
-          color: var(--deep-red);
-          border-bottom: 2px solid var(--deep-red);
-        }
-
-        .el-icon {
-          margin-right: 5px;
+/* 导航栏响应式设计 */
+@media (max-width: 1199px) and (min-width: 768px) {
+  .el-header {
+    padding: 0 15px;
+    
+    .nav-container {
+      .logo {
+        font-size: 20px;
+      }
+      
+      .nav-menu {
+        :deep(.el-menu-item) {
+          font-size: 0.9rem;
+          height: 55px;
+          line-height: 55px;
         }
       }
     }
+  }
+}
 
-    .nav-dropdown {
-      .el-dropdown-link {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 36px;
-        height: 36px;
-        border-radius: 4px;
-        background-color: rgba(var(--primary-color-rgb), 0.1);
-        transition: all 0.2s ease;
-
-        &:hover {
-          background-color: rgba(var(--primary-color-rgb), 0.2);
+@media (max-width: 767px) {
+  .el-header {
+    padding: 0 10px;
+    
+    .nav-container {
+      .logo {
+        font-size: 18px;
+      }
+      
+      .nav-menu {
+        :deep(.el-menu-item) {
+          font-size: 0.85rem;
+          height: 50px;
+          line-height: 50px;
+          padding: 0 10px;
         }
+      }
+    }
+  }
+}
 
-        .el-icon {
-          font-size: 18px;
-          color: var(--primary-color);
+@media (max-width: 479px) {
+  .el-header {
+    padding: 0 8px;
+    
+    .nav-container {
+      .logo {
+        font-size: 16px;
+      }
+      
+      .nav-menu {
+        :deep(.el-menu-item) {
+          font-size: 0.8rem;
+          height: 45px;
+          line-height: 45px;
+          padding: 0 8px;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 319px) {
+  .el-header {
+    padding: 0 5px;
+    
+    .nav-container {
+      .logo {
+        font-size: 14px;
+      }
+      
+      .nav-menu {
+        :deep(.el-menu-item) {
+          font-size: 0.75rem;
+          height: 40px;
+          line-height: 40px;
+          padding: 0 5px;
         }
       }
     }
@@ -1255,9 +1342,14 @@ const initBackgroundMusic = () => {
 
 .el-main {
   position: relative;
-  z-index: 2;
+  z-index: 100;
   padding: 0 0;
   width: 100%;
+  height: 100%;
+  // min-height: calc(100vh - 60px);
+  overflow-x: hidden;
+  overflow-y: hidden;
+  box-sizing: border-box;
 }
 
 .content {
@@ -1265,18 +1357,56 @@ const initBackgroundMusic = () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  // padding: 50  0;
-  // max-width: 1400px;
-  margin: 50px 0;
+  margin: 40px 0px 0px;
   width: 100%;
+  box-sizing: border-box;
+}
+
+/* 主要内容区域响应式 */
+@media (max-width: 1199px) and (min-width: 768px) {
+  .content {
+    margin: 40px 0;
+    padding: 0 15px;
+  }
+}
+
+@media (max-width: 767px) {
+  .el-main {
+    min-height: calc(100vh - 50px);
+  }
+  
+  .content {
+    margin: 30px 0;
+    padding: 0 10px;
+  }
+}
+
+@media (max-width: 479px) {
+  .el-main {
+    min-height: calc(100vh - 45px);
+  }
+  
+  .content {
+    margin: 20px 0;
+    padding: 0 8px;
+  }
+}
+
+@media (max-width: 319px) {
+  .el-main {
+    min-height: calc(100vh - 40px);
+  }
+  
+  .content {
+    margin: 15px 0;
+    padding: 0 5px;
+  }
 }
 
 
 .lottery-area {
   display: flex;
   width: 100%;
-  height: 550px;
-  // background-color: #fefefe;
   justify-content: center;
   margin-top: 5px;
 }
@@ -1292,16 +1422,13 @@ const initBackgroundMusic = () => {
   max-width: 1100px;
   flex-direction: row;
 
-  // align-items: center;
-  // background-color: #141415;
-
   .left-award {
     background-image: url("../assets/img/leftbg.png");
     background-repeat: no-repeat;
-    background-size: cover;
+    background-size: contain;
     // background-color: rgba(255, 255, 255, 0.9);
     // height: 100%;
-    width: 450px;
+    width: 400px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1310,7 +1437,7 @@ const initBackgroundMusic = () => {
     .lottory_award_box {
       align-items: center;
       width: 100%;
-      height: 260px;
+      height: 200px;
       display: flex;
       color: #fff;
       flex-direction: column;
@@ -1362,7 +1489,7 @@ const initBackgroundMusic = () => {
         width: 30px;
         height: 30px;
         background-image: url("../assets/img/nextbtn.png");
-        background-size: cover;
+        background-size: contain;
         background-position: center;
         cursor: pointer;
         transition: transform 0.2s ease;
@@ -1424,252 +1551,20 @@ const initBackgroundMusic = () => {
   }
 
   .right-lottery {
-    width: 650px;
-    height: 100%;
+    width: 570px;
+    // height: 100%;
     background-image: url("../assets/img/rightbg.png");
     background-repeat: no-repeat;
-    background-size: cover;
+    background-size: contain;
     // background-color: rgba(255, 255, 255, 0.9);
-    height: 100%;
+    // height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
+    box-sizing: border-box;
   }
 
-  .winner-container {
-    flex: 1;
-    max-width: 400px;
-
-    .winner-card {
-      border-radius: 20px;
-      overflow: hidden;
-      background: linear-gradient(145deg, var(--warm-white), #fff8f0);
-      border: 3px solid transparent;
-      border-image: linear-gradient(45deg, var(--deep-red), var(--gold-color), var(--warm-red)) 1;
-      box-shadow: 0 12px 40px rgba(var(--warm-red-rgb), 0.25), 0 8px 25px rgba(var(--gold-color-rgb), 0.18);
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      height: 100%;
-      position: relative;
-
-      &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(45deg, rgba(var(--warm-red-rgb), 0.04), rgba(var(--gold-color-rgb), 0.04));
-        border-radius: 20px;
-        z-index: 0;
-      }
-
-      &::after {
-        content: '🏆✨';
-        position: absolute;
-        top: 15px;
-        right: 20px;
-        font-size: 24px;
-        animation: float 3s ease-in-out infinite reverse;
-        z-index: 2;
-      }
-
-      &:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 20px 60px rgba(var(--warm-red-rgb), 0.35), 0 0 40px rgba(var(--gold-color-rgb), 0.25);
-      }
-
-      .winner-content {
-        padding: 25px;
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        position: relative;
-        z-index: 1;
-      }
-
-      .winner-title {
-        display: flex;
-        align-items: center;
-        margin-bottom: 25px;
-        position: relative;
-
-        &::before {
-          content: '';
-          position: absolute;
-          bottom: -10px;
-          left: 0;
-          right: 0;
-          height: 3px;
-          background: linear-gradient(90deg, var(--deep-red), var(--gold-color), var(--warm-red));
-          border-radius: 2px;
-          animation: shimmer 2s ease-in-out infinite;
-        }
-
-        .winner-icon {
-          color: var(--gold-color);
-          margin-right: 15px;
-          filter: drop-shadow(2px 2px 4px rgba(var(--warm-red-rgb), 0.35));
-          animation: bounce 2s ease-in-out infinite;
-        }
-
-        h2 {
-          font-size: 26px;
-          background: linear-gradient(45deg, var(-eep-red), var(--gold-color));
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          margin: 0;
-          font-weight: 800;
-          text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
-        }
-      }
-
-      .winner-list {
-        flex: 1;
-        overflow-y: auto;
-        padding: 10px;
-        scroll-behavior: smooth;
-        max-height: 400px;
-        position: relative;
-
-        &::-webkit-scrollbar {
-          width: 8px;
-        }
-
-        &::-webkit-scrollbar-track {
-          background: rgba(var(--gold-color-rgb), 0.12);
-          border-radius: 4px;
-        }
-
-        &::-webkit-scrollbar-thumb {
-          background: linear-gradient(45deg, var(--deep-red), var(--gold-color));
-          // border-radius: 4px;
-        }
-
-        &::-webkit-scrollbar-thumb:hover {
-          background: linear-gradient(45deg, var(--warm-red), var(--secondary-color));
-        }
-
-        .winner-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 14px 18px;
-          margin-bottom: 12px;
-          border-radius: 12px;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          position: relative;
-          background: linear-gradient(135deg, #ffffff, #fefefe);
-          border: 2px solid transparent;
-          animation: fadeInUp 0.6s ease-out;
-          transform-origin: center;
-          overflow: hidden;
-
-          &::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(var(--gold-color-rgb), 0.25), transparent);
-            transition: left 0.6s ease;
-          }
-
-          &::after {
-            content: '🎉';
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            font-size: 16px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-          }
-
-          @keyframes fadeInUp {
-            from {
-              opacity: 0;
-              transform: translateY(20px) scale(0.9);
-            }
-
-            to {
-              opacity: 1;
-              transform: translateY(0) scale(1);
-            }
-          }
-
-          &:hover {
-            border-color: var(--gold-color);
-            transform: translateY(-3px) scale(1.02);
-            box-shadow: 0 8px 25px rgba(var(--warm-red-rgb), 0.25), 0 0 15px rgba(var(--gold-color-rgb), 0.35);
-            background: linear-gradient(135deg, rgba(var(--gold-color-rgb), 0.06), rgba(var(--warm-red-rgb), 0.06));
-
-            &::before {
-              left: 100%;
-            }
-
-            &::after {
-              opacity: 1;
-            }
-
-            .delete-winner-btn {
-              opacity: 1;
-              transform: translateY(-50%) scale(1.1);
-            }
-
-            .winner-name {
-              color: var(--deep-red);
-            }
-
-            .winner-award {
-              transform: scale(1.05);
-            }
-          }
-
-          .winner-name {
-            font-size: 15px;
-            font-weight: 600;
-            color: #333;
-            transition: color 0.3s ease;
-          }
-
-          .winner-award {
-            font-size: 13px;
-            font-weight: 700;
-            padding: 6px 12px;
-            border-radius: 8px;
-            background: linear-gradient(45deg, var(--deep-red), var(--gold-color));
-            color: #fff;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
-            transition: transform 0.3s ease;
-            box-shadow: 0 2px 8px rgba(var(--warm-red-rgb), 0.35);
-          }
-
-          .delete-winner-btn {
-            opacity: 0;
-            transition: all 0.3s ease;
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 28px;
-            height: 28px;
-            padding: 0;
-            color: var(--deep-red);
-            background: rgba(var(--warm-red-rgb), 0.12);
-            border-radius: 50%;
-            border: 2px solid var(--deep-red);
-
-            &:hover {
-              background: var(--deep-red);
-              color: white;
-              transform: translateY(-50%) scale(1.2);
-            }
-          }
-        }
-      }
-    }
-  }
+  // 
 }
 
 /* 动画定义 */
@@ -1808,11 +1703,11 @@ const initBackgroundMusic = () => {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   display: position;
   top: 10%;
-  left: 10%;
+  left: 5%;
   justify-content: center;
   align-items: center;
   z-index: 1000;
@@ -1917,9 +1812,7 @@ const initBackgroundMusic = () => {
 .winner-popup-content {
   padding: 15px;
   max-height: 70vh;
-  overflow-y: auto;
- 
-
+  // overflow-y: hidden;
   .winner-popup-grid {
     padding: 10px;
     display: grid;
@@ -1962,7 +1855,16 @@ const initBackgroundMusic = () => {
     }
   }
 }
-
+/* 自定义滚动条样式 */
+.winner-popup-content::-webkit-scrollbar {
+  width: 5px; /* 纵向滚动条宽度 */
+  // height: 10px; /* 横向滚动条高度 */
+}
+/* 滚动条滑块 */
+.winner-popup-content::-webkit-scrollbar-thumb {
+  background: #888; /* 滑块颜色 */
+  border-radius: 8px; /* 滑块边角弧度 */
+}
 @keyframes float {
 
   0%,
@@ -1982,15 +1884,52 @@ const initBackgroundMusic = () => {
 /* 老虎机滚动样式 */
 .slot-machine-container {
   text-align: center;
-  padding: 30px;
-  // background: rgba(238, 59, 59, 0.7);
+  padding: 150px 20px;
   border-radius: 20px;
-  // box-shadow: 0 15px 35px rgba(245, 4, 4, 0.5);
   max-width: 500px;
   width: 100%;
+  margin-top: 150px;
+  transition: all 0.3s ease;
+  // background: rgba(255, 255, 255, 0.1);
   // backdrop-filter: blur(10px);
-  // border: 1px solid rgba(255, 255, 255, 0.1);
-  margin-top: 120px;
+  // border: 1px solid rgba(255, 255, 255, 0.2);
+  // box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* 老虎机容器响应式优化 */
+@media (max-width: 1199px) and (min-width: 768px) {
+  .slot-machine-container {
+    margin-top: 100px;
+    padding: 75px;
+    border-radius: 15px;
+  }
+}
+
+@media (max-width: 767px) {
+  .slot-machine-container {
+    margin-top: 80px;
+    padding: 20px;
+    border-radius: 12px;
+    max-width: 450px;
+  }
+}
+
+@media (max-width: 479px) {
+  .slot-machine-container {
+    margin-top: 60px;
+    padding: 15px;
+    border-radius: 10px;
+    max-width: 350px;
+  }
+}
+
+@media (max-width: 319px) {
+  .slot-machine-container {
+    margin-top: 40px;
+    padding: 12px;
+    border-radius: 8px;
+    max-width: 300px;
+  }
 }
 
 .slot-title {
@@ -2299,7 +2238,7 @@ const initBackgroundMusic = () => {
   width: 150px;
   height: 60px;
   display: flex;
-  padding: 15px 40px;
+  // padding: 15px 40px;
   position: relative;
   overflow: hidden;
 }
@@ -2321,20 +2260,30 @@ const initBackgroundMusic = () => {
 .slot-btn-start {
   width: 150px;
   background-image: url("../assets/img/startbtn.png");
-  background-size: cover;
+  background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
 }
 
 .slot-btn-stop {
-  width: 150px;
-
+  // width: 150px;
   background-image: url("../assets/img/stopbtn.png");
-  background-size: cover;
+  background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
 }
+.slot-btn-showDialog {
+  color: #fff;
+  border-radius: 30px;
+  // background-color: #efdb04;
+  height: 40px;
 
+  width: 100px;
+  background-image: url("../assets/img/zjmd.png");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
 .slot-btn:hover:not(:disabled) {
   transform: translateY(-3px);
 }
@@ -2448,29 +2397,341 @@ const initBackgroundMusic = () => {
 }
 
 /* 响应式设计 */
-@media (max-width: 600px) {
+
+/* 大屏幕 (1200px+) */
+@media (min-width: 1200px) {
+  .el-header {
+    padding: 0 40px;
+  }
+  
+  .slot-machine-container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  .slot-title {
+    font-size: 4rem;
+  }
+}
+
+/* 中等屏幕 (768px - 1199px) */
+@media (max-width: 1199px) and (min-width: 768px) {
+  .el-header {
+    padding: 0 30px;
+    
+    .nav-container {
+      .logo {
+        font-size: 20px;
+      }
+      
+      .nav-menu :deep(.el-menu-item) {
+        font-size: 0.9rem;
+        height: 50px;
+        line-height: 50px;
+      }
+    }
+  }
+  
+  .slot-machine-container {
+    width: 90%;
+    padding: 30px 20px;
+  }
+  
+  .slot-title {
+    font-size: 3.5rem;
+    margin-bottom: 30px;
+  }
+  
+  .slot-machine {
+    width: 350px;
+    height: 280px;
+  }
+  
+  .slot-machine .name {
+    height: 120px;
+    font-size: 3rem;
+  }
+  
+  .slot-btn {
+    padding: 15px 35px;
+    font-size: 1.1rem;
+    margin: 0 10px;
+  }
+  
+  .winner-popup-box {
+    width: 90%;
+    height: 70%;
+    max-width: 900px;
+  }
+}
+
+/* 小屏幕平板 (600px - 767px) */
+@media (max-width: 767px) and (min-width: 600px) {
+  .el-header {
+    padding: 0 20px;
+    height: 50px;
+    
+    .nav-container {
+      .logo {
+        font-size: 18px;
+      }
+      
+      .nav-menu {
+        display: none;
+      }
+      
+      .nav-dropdown {
+        .el-dropdown-link {
+          width: 32px;
+          height: 32px;
+          
+          .el-icon {
+            font-size: 16px;
+          }
+        }
+      }
+    }
+  }
+  
   .slot-machine-container {
     width: 95%;
-    padding: 20px 15px;
+    padding: 25px 15px;
   }
-
+  
   .slot-title {
-    font-size: 2rem;
+    font-size: 2.8rem;
+    margin-bottom: 25px;
   }
-
+  
   .slot-machine {
-    width: 250px;
-    height: 100px;
+    width: 300px;
+    height: 240px;
   }
-
+  
   .slot-machine .name {
     height: 100px;
     font-size: 2.5rem;
   }
-
+  
   .slot-btn {
-    padding: 12px 30px;
+    padding: 12px 25px;
     font-size: 1rem;
+    margin: 0 8px;
+  }
+  
+  .winner-popup-box {
+    width: 95%;
+    height: 80%;
+    max-width: 600px;
+  }
+}
+
+/* 手机屏幕 (480px - 599px) */
+@media (max-width: 599px) and (min-width: 480px) {
+  .el-header {
+    padding: 0 15px;
+    height: 50px;
+    
+    .nav-container {
+      .logo {
+        font-size: 16px;
+      }
+      
+      .nav-menu {
+        display: none;
+      }
+      
+      .nav-dropdown {
+        .el-dropdown-link {
+          width: 30px;
+          height: 30px;
+          
+          .el-icon {
+            font-size: 14px;
+          }
+        }
+      }
+    }
+  }
+  
+  .slot-machine-container {
+    width: 95%;
+    padding: 20px 10px;
+  }
+  
+  .slot-title {
+    font-size: 2.2rem;
+    margin-bottom: 20px;
+  }
+  
+  .slot-machine {
+    width: 280px;
+    height: 200px;
+  }
+  
+  .slot-machine .name {
+    height: 80px;
+    font-size: 2rem;
+    padding: 0 10px;
+  }
+  
+  .slot-btn {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+    margin: 0 5px;
+  }
+  
+  .winner-popup-box {
+    width: 95%;
+    height: 85%;
+    max-width: 450px;
+    border-width: 1.5rem;
+  }
+}
+
+/* 小手机屏幕 (320px - 479px) */
+@media (max-width: 479px) {
+  .el-header {
+    padding: 0 10px;
+    height: 45px;
+    
+    .nav-container {
+      .logo {
+        font-size: 14px;
+      }
+      
+      .nav-menu {
+        display: none;
+      }
+      
+      .nav-dropdown {
+        .el-dropdown-link {
+          width: 28px;
+          height: 28px;
+          
+          .el-icon {
+            font-size: 12px;
+          }
+        }
+      }
+    }
+  }
+  
+  .slot-machine-container {
+    width: 98%;
+    padding: 15px 8px;
+  }
+  
+  .slot-title {
+    font-size: 1.8rem;
+    margin-bottom: 15px;
+  }
+  
+  .slot-machine {
+    width: 250px;
+    height: 180px;
+  }
+  
+  .slot-machine .name {
+    height: 70px;
+    font-size: 1.6rem;
+    padding: 0 8px;
+  }
+  
+  .slot-btn {
+    padding: 8px 15px;
+    font-size: 0.8rem;
+    margin: 0 3px;
+  }
+  
+  .winner-popup-box {
+    width: 98%;
+    height: 90%;
+    max-width: 320px;
+    border-width: 1rem;
+  }
+  
+  .winner-popup-header {
+    top: -50px;
+    height: 2.5rem;
+  }
+  
+  .winner-popup-close {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* 超小屏幕 (最大319px) */
+@media (max-width: 319px) {
+  .el-header {
+    padding: 0 8px;
+    height: 40px;
+    
+    .nav-container {
+      .logo {
+        font-size: 12px;
+      }
+      
+      .nav-menu {
+        display: none;
+      }
+      
+      .nav-dropdown {
+        .el-dropdown-link {
+          width: 24px;
+          height: 24px;
+          
+          .el-icon {
+            font-size: 10px;
+          }
+        }
+      }
+    }
+  }
+  
+  .slot-machine-container {
+    width: 100%;
+    padding: 10px 5px;
+  }
+  
+  .slot-title {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+  }
+  
+  .slot-machine {
+    width: 220px;
+    height: 160px;
+  }
+  
+  .slot-machine .name {
+    height: 60px;
+    font-size: 1.4rem;
+    padding: 0 5px;
+  }
+  
+  .slot-btn {
+    padding: 6px 12px;
+    font-size: 0.7rem;
+    margin: 0 2px;
+  }
+  
+  .winner-popup-box {
+    width: 100%;
+    height: 95%;
+    max-width: 280px;
+    border-width: 0.5rem;
+  }
+  
+  .winner-popup-header {
+    top: -30px;
+    height: 2rem;
+  }
+  
+  .winner-popup-close {
+    width: 30px;
+    height: 30px;
   }
 }
 

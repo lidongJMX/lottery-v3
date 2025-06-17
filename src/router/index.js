@@ -3,6 +3,7 @@ import Home from '../views/Home.vue'
 import AwardManagement from '../views/AwardManagement.vue'
 import Login from '../views/Login.vue'
 import Admin from '../views/Admin.vue'
+import Index from '../views/index.vue'
 
 const routes = [
   {
@@ -11,6 +12,13 @@ const routes = [
     component: Home
   },
   {
+    path: '/index',
+    name: 'Index',
+    component: Index,
+    meta: { requiresAuth: true }
+  },
+  {
+
     path: '/login',
     name: 'Login',
     component: Login
