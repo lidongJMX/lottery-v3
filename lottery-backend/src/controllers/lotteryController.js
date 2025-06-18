@@ -344,7 +344,7 @@ const lotteryController = {
       const allAvailableAwards = await Award.findAll({
         where: {
           remaining_count: {
-            [sequelize.Op.gt]: 0
+            [Op.gt]: 0
           }
         },
         transaction

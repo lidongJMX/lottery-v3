@@ -76,46 +76,8 @@
     </el-container>
   </div>
 
-  <!-- 底部导航条触发区域 -->
-  <div class="bottom-nav-trigger" @mouseenter="showBottomNav = true" @mouseleave="showBottomNav = false">
-  </div>
-
-  <!-- 底部导航条 -->
-  <div class="bottom-navigation" @mouseenter="showBottomNav = true" @mouseleave="showBottomNav = false"
-    :class="{ 'nav-visible': showBottomNav }">
-    <div class="nav-content">
-      <div class="nav-item" @click="router.push('/admin')">
-        <el-icon>
-          <DataBoard />
-        </el-icon>
-        <span>管理后台</span>
-      </div>
-      <div class="nav-item" @click="router.push('/participants')">
-        <el-icon>
-          <User />
-        </el-icon>
-        <span>参与者管理</span>
-      </div>
-      <div class="nav-item" @click="router.push('/lottery')">
-        <el-icon>
-          <Trophy />
-        </el-icon>
-        <span>抽奖页面</span>
-      </div>
-      <div class="nav-item" @click="router.push('/export')">
-        <el-icon>
-          <Download />
-        </el-icon>
-        <span>导出数据</span>
-      </div>
-      <div class="nav-item" @click="toggleFullscreen">
-        <el-icon>
-          <FullScreen />
-        </el-icon>
-        <span>全屏模式</span>
-      </div>
-    </div>
-  </div>
+  <!-- 引入底部导航栏组件 -->
+  <BottomNavigation />
 
   <!-- 中奖弹窗 -->
   <div v-if="showWinnerDialog" class="winner-popup-overlay" @click="showWinnerDialog = false">
@@ -154,10 +116,9 @@ import {
   More,
   Picture,
   Timer,
-  FullScreen,
-  Aim,
-  DataBoard
+  Aim
 } from '@element-plus/icons-vue'
+import BottomNavigation from '../components/BottomNavigation.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as XLSX from 'xlsx'
 import dayjs from 'dayjs'
@@ -183,33 +144,8 @@ const currentMusicUrl = ref('')
 const musicVolume = ref(50)
 const audioElement = ref(null)
 
-// 底部导航条显示状态
-const showBottomNav = ref(false)
+// 全屏状态
 const isFullscreen = ref(false)
-
-// 全屏控制
-const toggleFullscreen = () => {
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen().then(() => {
-      isFullscreen.value = true
-      ElMessage.success('已进入全屏模式')
-    }).catch(err => {
-      ElMessage.error('进入全屏失败: ' + err.message)
-    })
-  } else {
-    document.exitFullscreen().then(() => {
-      isFullscreen.value = false
-      ElMessage.success('已退出全屏模式')
-    }).catch(err => {
-      ElMessage.error('退出全屏失败: ' + err.message)
-    })
-  }
-}
-
-// 监听全屏状态变化
-const handleFullScreenChange = () => {
-  isFullscreen.value = !!document.fullscreenElement
-}
 
 // 切换背景音乐
 const toggleBackgroundMusic = () => {
@@ -295,8 +231,7 @@ onMounted(() => {
     countdownDate.value = parseInt(savedDateTime)
   }
 
-  // 监听全屏状态变化
-  document.addEventListener('fullscreenchange', handleFullScreenChange)
+  // 全屏状态变化监听已移至BottomNavigation组件
 })
 // 加载参与者列表
 const loadParticipants = () => {
@@ -567,7 +502,7 @@ const currentAwardWinners = computed(() => {
 
 // 页面卸载时清理
 onUnmounted(() => {
-  document.removeEventListener('fullscreenchange', handleFullScreenChange)
+  // 全屏状态变化监听已移至BottomNavigation组件
   if (audioElement.value) {
     audioElement.value.pause()
     audioElement.value = null
@@ -2972,113 +2907,5 @@ const initBackgroundMusic = () => {
   }
 }
 
-/* 底部导航条触发区域 */
-.bottom-nav-trigger {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 15px;
-  z-index: 999;
-  background: transparent;
-}
-
-/* 底部导航栏样式 */
-.bottom-navigation {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 70px;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(10px);
-  padding: 10px 30px;
-  z-index: 1000;
-  transition: all 0.3s ease;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-  opacity: 0;
-  transform: translateY(100%);
-}
-
-.bottom-navigation:hover,
-.bottom-navigation.nav-visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.bottom-navigation::before {
-  content: '';
-  position: absolute;
-  top: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 40px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 2px;
-}
-
-.nav-content {
-  display: flex;
-  gap: 20px;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  flex-wrap: wrap;
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 16px;
-  border-radius: 12px;
-  background: transparent;
-  color: #ffffff;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.8rem;
-  border: none;
-  min-width: 70px;
-}
-
-.nav-item:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-}
-
-.nav-item .el-icon {
-  font-size: 1.2rem;
-}
-
-.nav-item span {
-  font-weight: 600;
-  white-space: nowrap;
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .bottom-navigation {
-    min-width: 250px;
-    padding: 12px 20px;
-  }
-
-  .nav-content {
-    gap: 15px;
-  }
-
-  .nav-item {
-    padding: 8px 12px;
-    font-size: 0.8rem;
-  }
-
-  .nav-item span {
-    display: none;
-  }
-}
+/* 底部导航栏样式已移至BottomNavigation组件 */
 </style>
