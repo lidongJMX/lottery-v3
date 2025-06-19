@@ -35,7 +35,6 @@ const winnerController = {
     let transaction;
     try {
       console.log('查询user_code:', req.params.id, '类型:', typeof req.params.id);
-
       // 开始事务
       transaction = await sequelize.transaction();
 

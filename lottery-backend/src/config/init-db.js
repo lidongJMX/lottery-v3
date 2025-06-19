@@ -24,88 +24,88 @@ const initDatabase = async () => {
     const awardCount = await Award.count();
     if (awardCount === 0) {
       await Award.bulkCreate([
-      {
-        name: '特等奖',
-        description: '最高奖项',
-        count: 1,
-        remaining_count: 1,
-        level: 1
-      },
-      {
-        name: '一等奖',
-        description: '一等奖项',
-        count: 3,
-        remaining_count: 3,
-        level: 2
-      },
-      {
-        name: '二等奖',
-        description: '二等奖项',
-        count: 5,
-        remaining_count: 5,
-        level: 3
-      },
-      {
-        name: '三等奖',
-        description: '三等奖项',
-        count: 10,
-        remaining_count: 10,
-        level: 4
-      },
-      {
-        name: '参与奖',
-        description: '参与奖项',
-        count: 20,
-        remaining_count: 20,
-        level: 5
-      }
-    ]);
+        {
+          name: '特等奖',
+          description: '最高奖项',
+          count: 1,
+          remaining_count: 1,
+          level: 1
+        },
+        {
+          name: '一等奖',
+          description: '一等奖项',
+          count: 3,
+          remaining_count: 3,
+          level: 2
+        },
+        {
+          name: '二等奖',
+          description: '二等奖项',
+          count: 5,
+          remaining_count: 5,
+          level: 3
+        },
+        {
+          name: '三等奖',
+          description: '三等奖项',
+          count: 10,
+          remaining_count: 10,
+          level: 4
+        },
+        {
+          name: '参与奖',
+          description: '参与奖项',
+          count: 20,
+          remaining_count: 20,
+          level: 5
+        }
+      ]);
     }
 
     // 创建初始参与者数据（如果不存在）
     const participantCount = await Participant.count();
     if (participantCount === 0) {
       await Participant.bulkCreate([
-      {
-        name: '张三',
-        user_code: 'ZS001',
-        department: '研发部',
-        weight: 1.0
-      },
-      {
-        name: '李四',
-        user_code: 'LS002',
-        department: '市场部',
-        weight: 1.0
-      },
-      {
-        name: '王五',
-        user_code: 'WW003',
-        department: '销售部',
-        weight: 1.0
-      },
-      {
-        name: '赵六',
-        user_code: 'ZL004',
-        department: '人事部',
-        weight: 1.0
-      },
-      {
-        name: '孙七',
-        user_code: 'SQ005',
-        department: '财务部',
-        weight: 1.0
-      }
-    ]);
+        {
+          name: '张三',
+          user_code: 'ZS001',
+          department: '研发部',
+          weight: 1.0
+        },
+        {
+          name: '李四',
+          user_code: 'LS002',
+          department: '市场部',
+          weight: 1.0
+        },
+        {
+          name: '王五',
+          user_code: 'WW003',
+          department: '销售部',
+          weight: 1.0
+        },
+        {
+          name: '赵六',
+          user_code: 'ZL004',
+          department: '人事部',
+          weight: 1.0
+        },
+        {
+          name: '孙七',
+          user_code: 'SQ005',
+          department: '财务部',
+          weight: 1.0
+        }
+      ]);
     }
 
     // 创建初始轮次记录（如果不存在）
     const epochCount = await Epoch.count();
-    if (epochCount === 1) {
+    if (epochCount === 0) {
       await Epoch.create({
         epoch: 1,
-        current_epoch: 1,
-        status: 1
+        // current_epoch: 1,
+        status: 'idle'
       });
     }
 

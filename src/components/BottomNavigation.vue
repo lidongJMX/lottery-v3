@@ -19,11 +19,11 @@
         </el-icon>
         <span>老虎机</span>
       </div>
-      <div class="nav-item" @click="router.push('/lottery')">
+      <div class="nav-item" @click="router.push('/member-list')">
         <el-icon>
           <Trophy />
         </el-icon>
-        <span>抽奖页面</span>
+        <span>名单抽奖</span>
       </div>
       <div class="nav-item" @click="router.push('/export')">
         <el-icon>

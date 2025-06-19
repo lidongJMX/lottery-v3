@@ -73,27 +73,38 @@ const lotteryController = {
       const { awards_to_draw } = req.body;
       const currentEpoch = await Epoch.findOne({ transaction });
 
-      // 获取所有参与者
+      // 获取当前轮次已中奖的参与者ID，确保同一轮次不重复中奖
+      const currentRoundWinners = await Winner.findAll({
+        where: { epoch: currentEpoch.epoch },
+        attributes: ['participant_id'],
+        transaction
+      });
+      const currentRoundWinnerIds = new Set(currentRoundWinners.map(w => w.participant_id));
+      console.log('当前轮次已中奖参与者ID:', Array.from(currentRoundWinnerIds));
+
       // 获取所有未中奖参与者
       const notWon = await Participant.findAll({
         where: { has_won: false },
         transaction
       });
 
-      // 获取上一轮的中奖者（而不是所有已中奖者）
-      const lastRoundWinners = await Winner.findAll({
-        where: { epoch: currentEpoch.epoch }, // 获取当前轮次的中奖者作为"上一轮"
-        include: [{ model: Participant }],
+      // 获取已中奖但不是当前轮次的参与者
+      const wonButNotCurrentRound = await Participant.findAll({
+        where: { 
+          has_won: true,
+          id: {
+            [Op.notIn]: Array.from(currentRoundWinnerIds)
+          }
+        },
         transaction
       });
 
-      // 从上一轮中奖者中随机选择10%参与本轮抽奖
-      const lastRoundParticipants = lastRoundWinners.map(winner => winner.Participant);
-      const hasWon = lastRoundParticipants.sort(() => 0.5 - Math.random())
-        .slice(0, Math.ceil(lastRoundParticipants.length * 0.1));
+      // 从已中奖但不是当前轮次的参与者中随机选择20%参与本轮抽奖
+      const hasWonParticipants = wonButNotCurrentRound.sort(() => 0.5 - Math.random())
+        .slice(0, Math.ceil(wonButNotCurrentRound.length * 0.2));
 
-      console.log('查看hasWon的内容:', hasWon.length);
-      const participants = [...notWon, ...hasWon];
+      console.log(`未中奖人员: ${notWon.length}, 已中奖但非当前轮次: ${wonButNotCurrentRound.length}, 选中参与抽奖: ${hasWonParticipants.length}`);
+      const participants = [...notWon, ...hasWonParticipants];
 
       // 计算总奖品数量
       const totalPrizes = awards_to_draw.reduce((sum, award) => sum + award.draw_count, 0);
@@ -328,7 +339,7 @@ const lotteryController = {
       }
 
       // 检查当前轮次中每个奖项是否已被抽过
-      const currentRoundWinners = await Winner.findAll({
+      const currentRoundWinnersWithAwards = await Winner.findAll({
         where: { epoch: currentEpoch.epoch },
         include: [{ model: Award }],
         transaction
@@ -336,7 +347,7 @@ const lotteryController = {
       
       // 获取本轮已抽过的奖项ID
       const currentRoundDrawnAwards = new Set();
-      currentRoundWinners.forEach(winner => {
+      currentRoundWinnersWithAwards.forEach(winner => {
         currentRoundDrawnAwards.add(winner.award_id);
       });
       
@@ -484,7 +495,7 @@ const lotteryController = {
       );
       console.log('重置Award表成功'); // 添加调试日志
       await Epoch.update(
-        { epoch: 0, status: 'idle' },
+        { epoch: 1, status: 'idle' },
         { where: {}, transaction }
       );
       console.log('重置Epoch表成功'); // 添加调试日志

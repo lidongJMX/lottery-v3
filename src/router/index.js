@@ -96,6 +96,11 @@ const routes = [
     path: '/lotter-demo',
     name: 'LotteryDemo',
     component: () => import('@/components/AdvancedLotteryRoll.vue')
+  },
+  {
+    path: '/mingdan',
+    name: 'Mingdan',
+    component: () => import('@/views/MemberList.vue')
   }
 ]
 
