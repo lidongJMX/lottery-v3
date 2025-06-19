@@ -3039,3 +3039,4 @@ lottery-backend/node_modules/yallist/LICENSE
 lottery-backend/node_modules/yallist/package.json
 lottery-backend/node_modules/yallist/README.md
 lottery-backend/node_modules/yallist/yallist.js
+src/views/test/lottery-page.vue

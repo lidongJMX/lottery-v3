@@ -10,7 +10,7 @@ const Epoch = sequelize.define('Epoch', {
   epoch: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    defaultValue: 0
+    defaultValue: 1
   },
     status: {
     type: DataTypes.ENUM('idle', 'running', 'paused', 'completed'), // 使用字符串枚举

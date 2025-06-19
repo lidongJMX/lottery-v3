@@ -101,10 +101,10 @@ const initDatabase = async () => {
 
     // 创建初始轮次记录（如果不存在）
     const epochCount = await Epoch.count();
-    if (epochCount === 0) {
+    if (epochCount === 1) {
       await Epoch.create({
-        epoch: 0,
-        current_epoch: 0,
+        epoch: 1,
+        current_epoch: 1,
         status: 1
       });
     }

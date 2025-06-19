@@ -456,7 +456,7 @@ const lotteryController = {
       );
       console.log('重置Award表成功'); // 添加调试日志
       await Epoch.update(
-        { epoch: 0, status: 'idle' },
+        { epoch: 1, status: 'idle' },
         { where: {}, transaction }
       );
       console.log('重置Epoch表成功'); // 添加调试日志

@@ -87,6 +87,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/test',
+    name: 'Test',
+    component: () => import('@/views/test/lottery-page.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
     path: '/lotter-demo',
     name: 'LotteryDemo',
     component: () => import('@/components/AdvancedLotteryRoll.vue')

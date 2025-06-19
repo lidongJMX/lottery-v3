@@ -43,19 +43,19 @@
 
                   <div class="slot-machine">
                     <!-- 添加顶部和底部的光效 -->
-                    <div class="slot-machine-overlay slot-machine-overlay-top"></div>
-                    <div class="slot-machine-overlay slot-machine-overlay-bottom"></div>
+                    <!-- <div class="slot-machine-overlay slot-machine-overlay-top"></div>
+                    <div class="slot-machine-overlay slot-machine-overlay-bottom"></div> -->
 
                     <!-- 添加左右两侧的装饰 -->
-                    <div class="slot-machine-side slot-machine-side-left">
+                    <!-- <div class="slot-machine-side slot-machine-side-left">
                       <div v-for="n in 5" :key="'left-' + n" class="slot-machine-light"></div>
                     </div>
                     <div class="slot-machine-side slot-machine-side-right">
                       <div v-for="n in 5" :key="'right-' + n" class="slot-machine-light"></div>
-                    </div>
+                    </div> -->
 
                     <div class="names-container" ref="namesContainer">
-                      <div v-for="participant in availableParticipants" :key="participant.id" class="name"
+                      <div v-for="participant in displayNames" :key="participant.id" class="name"
                         :class="{ 'name-highlight': Math.random() < 0.1 }">
                         {{ participant.name }}
                       </div>
@@ -65,7 +65,8 @@
                   <div class="slot-controls">
                     <div class="slot-btn slot-btn-start" @click="startLottery" :disabled="isSlotRunning"></div>
                     <div class="slot-btn slot-btn-stop" @click="stopLottery" :disabled="!isSlotRunning"></div>
-                    <div class="slot-btn slot-btn-showDialog" @click="showWinnerDialog = true" :disabled="isSlotRunning"></div>
+                    <div class="slot-btn slot-btn-showDialog" @click="showWinnerDialog = true"
+                      :disabled="isSlotRunning"></div>
                   </div>
                 </div>
               </div>
@@ -202,6 +203,8 @@ const isSlotRunning = ref(false)
 // const slotStatus = ref('点击开始按钮启动抽选')
 const namesContainer = ref(null)
 const slotAnimationId = ref(null)
+const scrollInterval = ref(null);
+
 // 奖项设置
 const awards = ref([])
 // 中奖者列表
@@ -490,7 +493,7 @@ const currentAwardWinners = computed(() => {
 
   // 找出最后一轮的中奖记录
   const lastRoundId = Math.max(...winners.value.map(w => w.roundId || w.epoch || 0))
-  
+
   // 过滤当前轮次且当前奖项的中奖者
   return winners.value.filter(w => {
     const winnerRoundId = w.roundId || w.epoch || 0
@@ -527,7 +530,7 @@ const getWinnerAwardName = (winner) => {
 
 
 // 滚动动画相关数据
-const displayNames = ref([])
+// const displayNames = ref([])
 const rollingOffset = ref(0)
 // 计算中心位置索引
 const centerIndex = computed(() => {
@@ -598,18 +601,16 @@ const deleteWinner = async (winner) => {
 const handleAwardChange = () => {
   // 奖项选择变化处理
 }
-
+const displayNames = computed(() => {
+  // 复制两倍的名单数据，确保首尾相连的平滑滚动
+  return [...participants.value, ...participants.value];
+});
 // 开始抽奖
 const startLottery = async () => {
-  console.log('startLottery called');
-  // console.log('isDrawing.value:', isDrawing.value);
-  console.log('currentAward.value:', currentAward.value);
-  console.log('selectedAward.value:', selectedAward.value);
-  console.log('awards.value:', awards.value);
 
   // if (isDrawing.value) return
   if (isSlotRunning.value) return
-  
+
   // 检查是否还有剩余奖项
   const award = selectedAward.value
   console.log('当前奖项:', award)
@@ -630,7 +631,7 @@ const startLottery = async () => {
         award_name: award.name
       })
     });
-    
+
     if (!checkResponse.ok) {
       const errorData = await checkResponse.json();
       ElMessage.warning(errorData.message || '校验失败');
@@ -655,14 +656,12 @@ const startLottery = async () => {
     // 播放抽奖音效
     playLotterySound()
 
-    
+
     isSlotRunning.value = true
     console.log('participants.value.length', participants.value.length)
 
     // 确保有足够的名字进行滚动
     if (availableParticipants.value.length === 0) {
-      // slotStatus.value = "没有可用的参与者数据"
-      
       isSlotRunning.value = false
       return
     }
@@ -673,21 +672,22 @@ const startLottery = async () => {
     }
 
     // 重置名字容器样式
-    console.log("namesContainer.value", namesContainer.value)
-    if (namesContainer.value) {
-      // 移除所有选中效果
-      const nameElements = document.querySelectorAll('.slot-machine .name')
-      nameElements.forEach(name => {
-        name.classList.remove('selected', 'winner-pulse')
-        // 随机添加初始高亮效果
-        if (Math.random() < 0.1) {
-          name.classList.add('name-highlight')
-          setTimeout(() => {
-            name.classList.remove('name-highlight')
-          }, 1000)
-        }
-      })
-    }
+    // if (namesContainer.value) {
+    //   // 移除所有选中效果
+    //   const nameElements = document.querySelectorAll('.slot-machine .name')
+    //   console.log("nameElements", nameElements)
+
+    //   nameElements.forEach(name => {
+    //     name.classList.remove('selected', 'winner-pulse')
+    //     // 随机添加初始高亮效果
+    //     if (Math.random() < 0.1) {
+    //       name.classList.add('name-highlight')
+    //       setTimeout(() => {
+    //         name.classList.remove('name-highlight')
+    //       }, 1000)
+    //     }
+    //   })
+    // }
 
     // 添加侧边灯光闪烁效果
     const lights = document.querySelectorAll('.slot-machine-light')
@@ -695,44 +695,43 @@ const startLottery = async () => {
       light.style.animationDuration = `${0.5 + Math.random() * 1}s`
     })
 
-    // 使用CSS动画实现滚动效果
-    console.log('namesContainer.value:', namesContainer.value);
-    console.log('availableParticipants.value.length:', availableParticipants.value.length);
-    console.log('availableParticipants.value:', availableParticipants.value);
-
     // 确保DOM已经渲染完成
     await nextTick()
-    console.log("nexttick-namesContainer",namesContainer.value)
-    console.log('After nextTick - namesContainer.value:', namesContainer.value);
 
     if (namesContainer.value) {
       // 添加滚动动画类
-      console.log('Setting animation on namesContainer.value:', namesContainer.value);
-      namesContainer.value.style.animation = 'slotScroll 0.1s infinite linear'
-      console.log('Setting animation on namesContainer.value2:', namesContainer.value);
-      // 随机添加名字高亮效果的定时器
-      const highlightInterval = setInterval(() => {
-        if (!isSlotRunning.value) {
-          clearInterval(highlightInterval)
-          return
-        }
+      // namesContainer.value.style.animation = 'slotScroll 0.1s infinite linear'
+      // console.log('Setting animation on namesContainer.value2:', namesContainer.value);
+      // // 随机添加名字高亮效果的定时器
+      // const highlightInterval = setInterval(() => {
+      //   if (!isSlotRunning.value) {
+      //     clearInterval(highlightInterval)
+      //     return
+      //   }
 
-        // 随机添加名字高亮效果
-        if (Math.random() < 0.3) {
-          const nameElements = document.querySelectorAll('.slot-machine .name')
-          if (nameElements.length > 0) {
-            const randomIndex = Math.floor(Math.random() * nameElements.length)
-            const randomName = nameElements[randomIndex]
-            randomName.classList.add('name-highlight')
-            setTimeout(() => {
-              randomName.classList.remove('name-highlight')
-            }, 500)
-          }
-        }
-      }, 200)
+      //   // 随机添加名字高亮效果
+      //   if (Math.random() < 0.3) {
+      //     const nameElements = document.querySelectorAll('.slot-machine .name')
+      //     if (nameElements.length > 0) {
+      //       const randomIndex = Math.floor(Math.random() * nameElements.length)
+      //       const randomName = nameElements[randomIndex]
+      //       randomName.classList.add('name-highlight')
+      //       setTimeout(() => {
+      //         randomName.classList.remove('name-highlight')
+      //       }, 500)
+      //     }
+      //   }
+      // }, 200)
+      scrollInterval.value = setInterval(() => {
+        rollingOffset.value += 20; // 更快的滚动速度
 
+        if (namesContainer.value) {
+          namesContainer.value.style.transform = `translateY(-${rollingOffset.value}px)`;
+          // namesWrapper.value.style.filter = 'blur(2px)'; // 添加模糊效果
+        }
+      }, 20);
       // 保存定时器ID以便后续清理
-      slotAnimationId.value = highlightInterval
+      // slotAnimationId.value = highlightInterval
     }
   } catch (error) {
     console.error('抽奖错误:', error)
@@ -745,71 +744,173 @@ const startLottery = async () => {
 
 // 停止抽奖
 const stopLottery = async () => {
-  // if (!isDrawing.value) return
-
   // 停止老虎机滚动动画
   if (!isSlotRunning.value) return
+  // 停止之前的动画
+  if (scrollInterval.value) {
+    clearInterval(scrollInterval.value)
+    scrollInterval.value = null
+  }
 
-  // 标记为正在停止
-  // slotStatus.value = "正在减速..."
+  // 先获取中奖结果
+  const award = awards.value.find(p => p.name === currentAward.value)
+  if (!award) return
+  const awards_to_draw = [award]
 
-  // 随机选择一个名字作为结果
-  if (availableParticipants.value.length > 0) {
-    const randomIndex = Math.floor(Math.random() * availableParticipants.value.length)
-    const selectedParticipant = availableParticipants.value[randomIndex]
+  try {
+    // 调用后端API获取中奖者
+    const response = await fetch('/api/lottery/stop', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        awards_to_draw: awards_to_draw,
+      })
+    });
 
-    // 停止之前的动画
-    if (slotAnimationId.value) {
-      clearInterval(slotAnimationId.value)
-      slotAnimationId.value = null
+    if (!response.ok) throw new Error('抽奖结果获取失败')
+    const resultData = await response.json()
+    const { winners: drawnWinners, updated_awards } = resultData
+
+    if (drawnWinners.length === 0) {
+      isSlotRunning.value = false
+      ElMessage.warning('本轮抽奖无中奖者')
+      return
     }
 
-    if (namesContainer.value) {
-      // 停止CSS动画
-      namesContainer.value.style.animation = 'none'
+    // 找到中奖者在参与者列表中的索引
+    const winnerName = drawnWinners[0].name
+    const winnerIndex = availableParticipants.value.findIndex(p => p.name === winnerName)
 
-      // 计算目标位置，确保选中的名字显示在中间
-      const slotHeight = 220 // 老虎机容器高度
-      const itemHeight = 120 // 每个名字的高度
-      const centerOffset = (slotHeight - itemHeight) / 2 // 居中偏移量
-      const targetOffset = randomIndex * itemHeight - centerOffset
-
-      // 平滑过渡到最终位置
-      namesContainer.value.style.transition = 'transform 3s cubic-bezier(0.23, 1, 0.32, 1)'
-      namesContainer.value.style.transform = `translateY(-${Math.max(0, targetOffset)}px)`
-
-      // 播放中奖音效
-      playWinnerSound()
-
-      // 添加结果高亮效果
-      setTimeout(() => {
-        const nameElements = document.querySelectorAll('.slot-machine .name')
-        nameElements.forEach((name, index) => {
-          name.classList.remove('selected', 'winner-pulse')
-          if (index === randomIndex) {
-            name.classList.add('selected')
-            // 添加脉冲动画效果
-            name.classList.add('winner-pulse')
-          }
-        })
-
-        // 更新状态
-        // slotStatus.value = `恭喜！选中: ${selectedParticipant.name}`
-        isSlotRunning.value = false
-        
-
-        // 动画完成后处理抽奖结果
-        handleLotteryResult()
-      }, 1200) // 等待滚动动画完成
+    if (winnerIndex === -1) {
+      isSlotRunning.value = false
+      ElMessage.error('中奖者不在当前参与者列表中')
+      return
     }
-  } else {
-    // slotStatus.value = "没有可选择的参与者"
+
+    // 老虎机效果：先减速再停止到指定位置
+    let slowDownSteps = 0;
+    const maxSlowDownSteps = 15;
+
+    const slowDownInterval = setInterval(() => {
+      slowDownSteps++;
+      const speed = Math.max(1, 8 - slowDownSteps * 0.5); // 逐渐减速
+      rollingOffset.value += speed;
+
+      if (namesContainer.value) {
+        namesContainer.value.style.transform = `translateY(-${rollingOffset.value}px)`;
+      }
+
+      if (slowDownSteps >= maxSlowDownSteps) {
+        clearInterval(slowDownInterval);
+        if (namesContainer.value) {
+          // 计算目标位置，确保选中的名字显示在中间
+          const slotHeight = 220 // 老虎机容器高度
+          const itemHeight = 180 // 每个名字的高度
+          const centerOffset = (slotHeight - itemHeight) / 2 // 居中偏移量
+          const targetOffset = winnerIndex * itemHeight - centerOffset
+
+          // 平滑过渡到最终位置
+          namesContainer.value.style.transition = 'all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+          namesContainer.value.style.transform = `translateY(-${targetOffset}px)`
+
+          // 播放中奖音效
+          playWinnerSound()
+
+          // 添加结果高亮效果
+          setTimeout(() => {
+            const nameElements = document.querySelectorAll('.slot-machine .name')
+            nameElements.forEach((name, index) => {
+              name.classList.remove('selected', 'winner-pulse')
+              if (index === winnerIndex) {
+                name.classList.add('selected')
+                // 添加脉冲动画效果
+                name.classList.add('winner-pulse')
+              }
+            })
+
+            isSlotRunning.value = false
+
+            // 处理抽奖结果
+            handleLotteryResultWithData(drawnWinners, updated_awards)
+          }, 500) // 等待滚动动画完成
+        }
+      }
+    }, 50)
+
+  } catch (error) {
+    console.error('停止抽奖时出错:', error)
+    ElMessage.error('抽奖失败，请重试')
     isSlotRunning.value = false
-    
   }
 }
 
-// 处理抽奖结果的业务逻辑
+// 处理已获取的抽奖结果
+const handleLotteryResultWithData = async (drawnWinners, updated_awards) => {
+  try {
+    // 更新奖项剩余数量
+    updated_awards.forEach(updatedAward => {
+      const award = awards.value.find(a => a.id === updatedAward.id)
+      if (award) {
+        award.remaining_count = updatedAward.remaining_count
+      }
+    })
+
+    // 更新中奖者列表
+    if (drawnWinners.length > 0) {
+      winners.value = [...winners.value, ...drawnWinners.map(winner => ({
+        id: winner.participant_id,
+        name: winner.name,
+        award: awards.value.find(a => a.id === winner.award_id)?.name || '未知奖项',
+        color: getAwardColor(winner.award_id),
+        department: winner.department || ''
+      }))]
+
+      // 保存到localStorage
+      localStorage.setItem('lottery_winners', JSON.stringify(winners.value))
+
+      // 显示中奖消息
+      const winnerNames = drawnWinners.map(w => w.name).join(', ')
+      const awardNames = [...new Set(drawnWinners.map(w =>
+        awards.value.find(a => a.id === w.award_id)?.name || '未知奖项'
+      ))].join(', ')
+
+      ElMessage.success(`恭喜 ${winnerNames} 获得 ${awardNames}！`)
+    }
+
+    // 刷新中奖列表
+    loadWinners()
+
+    // 弹窗展示中奖人员信息（添加延迟和动画效果）
+    if (drawnWinners.length > 0) {
+      console.log('显示中奖弹窗', drawnWinners[0])
+      // 设置弹窗数据
+      dialogWinners.value = drawnWinners
+      // 根据中奖人数动态调整弹窗宽度
+      if (drawnWinners.length <= 2) {
+        winnerDialogWidth.value = '400px'
+      } else if (drawnWinners.length <= 4) {
+        winnerDialogWidth.value = '600px'
+      } else if (drawnWinners.length <= 6) {
+        winnerDialogWidth.value = '800px'
+      } else {
+        winnerDialogWidth.value = '1000px'
+      }
+
+      // 延迟显示弹窗，增加戏剧效果
+      setTimeout(() => {
+        showWinnerDialog.value = true
+      }, 800)
+    }
+
+  } catch (error) {
+    console.error('处理中奖结果时出错:', error)
+    ElMessage.error('处理中奖结果失败')
+  }
+}
+
+// 保留原有的handleLotteryResult函数作为备用
 const handleLotteryResult = async () => {
   // 找到对应的奖项
   const award = awards.value.find(p => p.name === currentAward.value)
@@ -980,7 +1081,7 @@ const resetLotteryData = async () => {
 
     // 重置当前状态
     currentRollingName.value = null
-    
+
     currentAward.value = ''
 
     // 显示成功消息
@@ -1025,7 +1126,7 @@ const clearAllData = async () => {
 
     // 重置当前状态
     currentRollingName.value = null
-    
+
     currentAward.value = ''
 
     // 显示成功消息
@@ -1117,14 +1218,16 @@ const initBackgroundMusic = () => {
 /* 背景视频响应式优化 */
 @media (max-width: 767px) {
   .videoBg {
-    opacity: 0.7; /* 在移动设备上降低视频透明度以提高性能 */
+    opacity: 0.7;
+    /* 在移动设备上降低视频透明度以提高性能 */
   }
 }
 
 @media (max-width: 479px) {
   .videoBg {
     opacity: 0.5;
-    filter: blur(1px); /* 轻微模糊以减少移动设备负载 */
+    filter: blur(1px);
+    /* 轻微模糊以减少移动设备负载 */
   }
 }
 
@@ -1139,12 +1242,12 @@ const initBackgroundMusic = () => {
 @media (max-width: 1199px) and (min-width: 768px) {
   .el-header {
     padding: 0 15px;
-    
+
     .nav-container {
       .logo {
         font-size: 20px;
       }
-      
+
       .nav-menu {
         :deep(.el-menu-item) {
           font-size: 0.9rem;
@@ -1159,12 +1262,12 @@ const initBackgroundMusic = () => {
 @media (max-width: 767px) {
   .el-header {
     padding: 0 10px;
-    
+
     .nav-container {
       .logo {
         font-size: 18px;
       }
-      
+
       .nav-menu {
         :deep(.el-menu-item) {
           font-size: 0.85rem;
@@ -1180,12 +1283,12 @@ const initBackgroundMusic = () => {
 @media (max-width: 479px) {
   .el-header {
     padding: 0 8px;
-    
+
     .nav-container {
       .logo {
         font-size: 16px;
       }
-      
+
       .nav-menu {
         :deep(.el-menu-item) {
           font-size: 0.8rem;
@@ -1201,12 +1304,12 @@ const initBackgroundMusic = () => {
 @media (max-width: 319px) {
   .el-header {
     padding: 0 5px;
-    
+
     .nav-container {
       .logo {
         font-size: 14px;
       }
-      
+
       .nav-menu {
         :deep(.el-menu-item) {
           font-size: 0.75rem;
@@ -1309,7 +1412,7 @@ const initBackgroundMusic = () => {
   .el-main {
     min-height: calc(100vh - 50px);
   }
-  
+
   .content {
     margin: 30px 0;
     padding: 0 10px;
@@ -1320,7 +1423,7 @@ const initBackgroundMusic = () => {
   .el-main {
     min-height: calc(100vh - 45px);
   }
-  
+
   .content {
     margin: 20px 0;
     padding: 0 8px;
@@ -1331,7 +1434,7 @@ const initBackgroundMusic = () => {
   .el-main {
     min-height: calc(100vh - 40px);
   }
-  
+
   .content {
     margin: 15px 0;
     padding: 0 5px;
@@ -1647,18 +1750,15 @@ const initBackgroundMusic = () => {
   align-items: center;
   z-index: 1000;
   font-size: 50px;
+  /* 添加背景遮罩动画 */
+  animation: fadeIn 0.3s ease-out;
 }
 
 .winner-popup-box {
   position: relative;
   width: 1200px;
   height: 600px;
-  // left: 3%;
-  // top: 5%;
-  // right: 3%;
-  // bottom: 5%;
   padding: 0;
-  // padding-top: 3.75rem; /* 60px */
   margin: 0 0;
   color: #ffffff;
   /* 深色文字 */
@@ -1680,6 +1780,55 @@ const initBackgroundMusic = () => {
   --swiper-theme-color: #007aff;
   --swiper-navigation-size: 2.75rem;
   box-shadow: 0 15px 35px rgba(245, 4, 4, 0.5);
+  /* 添加弹窗缩放动画 */
+  animation: popupScale 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* 弹窗背景淡入动画 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* 弹窗从小到大缩放动画 */
+@keyframes popupScale {
+  0% {
+    transform: scale(0.3) translateZ(0);
+    opacity: 0;
+  }
+
+  50% {
+    transform: scale(1.05) translateZ(0);
+  }
+
+  100% {
+    transform: scale(1) translateZ(0);
+    opacity: 1;
+  }
+}
+
+/* 为弹窗内容添加延迟动画 */
+.winner-popup-content {
+  padding: 15px;
+  max-height: 70vh;
+  animation: contentFadeIn 0.4s ease-out 0.3s both;
+}
+
+@keyframes contentFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .winner-popup-header {
@@ -1747,6 +1896,7 @@ const initBackgroundMusic = () => {
 .winner-popup-content {
   padding: 15px;
   max-height: 70vh;
+
   // overflow-y: hidden;
   .winner-popup-grid {
     padding: 10px;
@@ -1761,6 +1911,7 @@ const initBackgroundMusic = () => {
       text-align: center;
       border: 1px solid rgba(var(--primary-color-rgb), 0.1);
       // background-color: #cf0808;
+      animation: itemSlideIn 0.5s ease-out both;
 
       &:hover {
         border-color: var(--primary-color);
@@ -1788,18 +1939,57 @@ const initBackgroundMusic = () => {
         color: var(--primary-color);
       }
     }
+
+    .winner-popup-item:nth-child(1) {
+      animation-delay: 0.4s;
+    }
+
+    .winner-popup-item:nth-child(2) {
+      animation-delay: 0.5s;
+    }
+
+    .winner-popup-item:nth-child(3) {
+      animation-delay: 0.6s;
+    }
+
+    .winner-popup-item:nth-child(4) {
+      animation-delay: 0.7s;
+    }
+
+    .winner-popup-item:nth-child(5) {
+      animation-delay: 0.8s;
+    }
+
+    .winner-popup-item:nth-child(6) {
+      animation-delay: 0.9s;
+    }
+  }
+}
+@keyframes itemSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 /* 自定义滚动条样式 */
 .winner-popup-content::-webkit-scrollbar {
-  width: 5px; /* 纵向滚动条宽度 */
+  width: 5px;
+  /* 纵向滚动条宽度 */
   // height: 10px; /* 横向滚动条高度 */
 }
+
 /* 滚动条滑块 */
 .winner-popup-content::-webkit-scrollbar-thumb {
-  background: #888; /* 滑块颜色 */
-  border-radius: 8px; /* 滑块边角弧度 */
+  background: #888;
+  /* 滑块颜色 */
+  border-radius: 8px;
+  /* 滑块边角弧度 */
 }
+
 @keyframes float {
 
   0%,
@@ -2012,7 +2202,7 @@ const initBackgroundMusic = () => {
 }
 
 .slot-machine .name {
-  height: 120px;
+  height: 180px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2207,6 +2397,7 @@ const initBackgroundMusic = () => {
   background-position: center;
   background-repeat: no-repeat;
 }
+
 .slot-btn-showDialog {
   color: #fff;
   border-radius: 30px;
@@ -2219,6 +2410,7 @@ const initBackgroundMusic = () => {
   background-position: center;
   background-repeat: no-repeat;
 }
+
 .slot-btn:hover:not(:disabled) {
   transform: translateY(-3px);
 }
@@ -2338,12 +2530,12 @@ const initBackgroundMusic = () => {
   .el-header {
     padding: 0 40px;
   }
-  
+
   .slot-machine-container {
     max-width: 1200px;
     margin: 0 auto;
   }
-  
+
   .slot-title {
     font-size: 4rem;
   }
@@ -2353,12 +2545,12 @@ const initBackgroundMusic = () => {
 @media (max-width: 1199px) and (min-width: 768px) {
   .el-header {
     padding: 0 30px;
-    
+
     .nav-container {
       .logo {
         font-size: 20px;
       }
-      
+
       .nav-menu :deep(.el-menu-item) {
         font-size: 0.9rem;
         height: 50px;
@@ -2366,33 +2558,33 @@ const initBackgroundMusic = () => {
       }
     }
   }
-  
+
   .slot-machine-container {
     width: 90%;
     padding: 30px 20px;
   }
-  
+
   .slot-title {
     font-size: 3.5rem;
     margin-bottom: 30px;
   }
-  
+
   .slot-machine {
     width: 350px;
     height: 280px;
   }
-  
+
   .slot-machine .name {
     height: 120px;
     font-size: 3rem;
   }
-  
+
   .slot-btn {
     padding: 15px 35px;
     font-size: 1.1rem;
     margin: 0 10px;
   }
-  
+
   .winner-popup-box {
     width: 90%;
     height: 70%;
@@ -2405,21 +2597,21 @@ const initBackgroundMusic = () => {
   .el-header {
     padding: 0 20px;
     height: 50px;
-    
+
     .nav-container {
       .logo {
         font-size: 18px;
       }
-      
+
       .nav-menu {
         display: none;
       }
-      
+
       .nav-dropdown {
         .el-dropdown-link {
           width: 32px;
           height: 32px;
-          
+
           .el-icon {
             font-size: 16px;
           }
@@ -2427,33 +2619,33 @@ const initBackgroundMusic = () => {
       }
     }
   }
-  
+
   .slot-machine-container {
     width: 95%;
     padding: 25px 15px;
   }
-  
+
   .slot-title {
     font-size: 2.8rem;
     margin-bottom: 25px;
   }
-  
+
   .slot-machine {
     width: 300px;
     height: 240px;
   }
-  
+
   .slot-machine .name {
     height: 100px;
     font-size: 2.5rem;
   }
-  
+
   .slot-btn {
     padding: 12px 25px;
     font-size: 1rem;
     margin: 0 8px;
   }
-  
+
   .winner-popup-box {
     width: 95%;
     height: 80%;
@@ -2466,21 +2658,21 @@ const initBackgroundMusic = () => {
   .el-header {
     padding: 0 15px;
     height: 50px;
-    
+
     .nav-container {
       .logo {
         font-size: 16px;
       }
-      
+
       .nav-menu {
         display: none;
       }
-      
+
       .nav-dropdown {
         .el-dropdown-link {
           width: 30px;
           height: 30px;
-          
+
           .el-icon {
             font-size: 14px;
           }
@@ -2488,34 +2680,34 @@ const initBackgroundMusic = () => {
       }
     }
   }
-  
+
   .slot-machine-container {
     width: 95%;
     padding: 20px 10px;
   }
-  
+
   .slot-title {
     font-size: 2.2rem;
     margin-bottom: 20px;
   }
-  
+
   .slot-machine {
     width: 280px;
     height: 200px;
   }
-  
+
   .slot-machine .name {
     height: 80px;
     font-size: 2rem;
     padding: 0 10px;
   }
-  
+
   .slot-btn {
     padding: 10px 20px;
     font-size: 0.9rem;
     margin: 0 5px;
   }
-  
+
   .winner-popup-box {
     width: 95%;
     height: 85%;
@@ -2529,21 +2721,21 @@ const initBackgroundMusic = () => {
   .el-header {
     padding: 0 10px;
     height: 45px;
-    
+
     .nav-container {
       .logo {
         font-size: 14px;
       }
-      
+
       .nav-menu {
         display: none;
       }
-      
+
       .nav-dropdown {
         .el-dropdown-link {
           width: 28px;
           height: 28px;
-          
+
           .el-icon {
             font-size: 12px;
           }
@@ -2551,46 +2743,46 @@ const initBackgroundMusic = () => {
       }
     }
   }
-  
+
   .slot-machine-container {
     width: 98%;
     padding: 15px 8px;
   }
-  
+
   .slot-title {
     font-size: 1.8rem;
     margin-bottom: 15px;
   }
-  
+
   .slot-machine {
     width: 250px;
     height: 180px;
   }
-  
+
   .slot-machine .name {
     height: 70px;
     font-size: 1.6rem;
     padding: 0 8px;
   }
-  
+
   .slot-btn {
     padding: 8px 15px;
     font-size: 0.8rem;
     margin: 0 3px;
   }
-  
+
   .winner-popup-box {
     width: 98%;
     height: 90%;
     max-width: 320px;
     border-width: 1rem;
   }
-  
+
   .winner-popup-header {
     top: -50px;
     height: 2.5rem;
   }
-  
+
   .winner-popup-close {
     width: 40px;
     height: 40px;
@@ -2602,21 +2794,21 @@ const initBackgroundMusic = () => {
   .el-header {
     padding: 0 8px;
     height: 40px;
-    
+
     .nav-container {
       .logo {
         font-size: 12px;
       }
-      
+
       .nav-menu {
         display: none;
       }
-      
+
       .nav-dropdown {
         .el-dropdown-link {
           width: 24px;
           height: 24px;
-          
+
           .el-icon {
             font-size: 10px;
           }
@@ -2624,46 +2816,46 @@ const initBackgroundMusic = () => {
       }
     }
   }
-  
+
   .slot-machine-container {
     width: 100%;
     padding: 10px 5px;
   }
-  
+
   .slot-title {
     font-size: 1.5rem;
     margin-bottom: 10px;
   }
-  
+
   .slot-machine {
     width: 220px;
     height: 160px;
   }
-  
+
   .slot-machine .name {
     height: 60px;
     font-size: 1.4rem;
     padding: 0 5px;
   }
-  
+
   .slot-btn {
     padding: 6px 12px;
     font-size: 0.7rem;
     margin: 0 2px;
   }
-  
+
   .winner-popup-box {
     width: 100%;
     height: 95%;
     max-width: 280px;
     border-width: 0.5rem;
   }
-  
+
   .winner-popup-header {
     top: -30px;
     height: 2rem;
   }
-  
+
   .winner-popup-close {
     width: 30px;
     height: 30px;

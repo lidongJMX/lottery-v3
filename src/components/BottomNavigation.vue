@@ -7,17 +7,17 @@
   <div class="bottom-navigation" @mouseenter="showBottomNav = true" @mouseleave="showBottomNav = false"
     :class="{ 'nav-visible': showBottomNav }">
     <div class="nav-content">
-      <div class="nav-item" @click="router.push('/index')">
+      <div class="nav-item" @click="router.push('/')">
         <el-icon>
           <DataBoard />
         </el-icon>
         <span>主页</span>
       </div>
-      <div class="nav-item" @click="router.push('/participants')">
+      <div class="nav-item" @click="router.push('/home')">
         <el-icon>
-          <User />
+          🎰
         </el-icon>
-        <span>参与者管理</span>
+        <span>老虎机</span>
       </div>
       <div class="nav-item" @click="router.push('/lottery')">
         <el-icon>
