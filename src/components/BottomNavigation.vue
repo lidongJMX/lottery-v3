@@ -19,7 +19,7 @@
         </el-icon>
         <span>老虎机</span>
       </div>
-      <div class="nav-item" @click="router.push('/member-list')">
+      <div class="nav-item" @click="router.push('/mingdan')">
         <el-icon>
           <Trophy />
         </el-icon>

@@ -106,38 +106,17 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed, h, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
-import {
-  Tickets,
-  Trophy,
-  User,
-  Download,
-  Delete,
-  Refresh,
-  SwitchButton,
-  More,
-  Picture,
-  Timer,
-  Aim
-} from '@element-plus/icons-vue'
+
 import BottomNavigation from '../components/BottomNavigation.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import * as XLSX from 'xlsx'
-import dayjs from 'dayjs'
+// 导入工具函数
+import {
+  awardUtils,
+  participantUtils,
+  winnerUtils,
+  soundUtils,
+} from '../utils/lotteryUtils.js'
 // 删除无用的样式引用
-
-// 添加登录状态检查
-const isLoggedIn = computed(() => {
-  return !!localStorage.getItem('token')
-})
-
-// 定义路由
-const router = useRouter()
-
-// 跳转到登录页面
-const goToLogin = () => {
-  router.push('/login')
-}
 
 // 基础设置相关
 const meetingTheme = ref('')
@@ -146,53 +125,12 @@ const currentMusicUrl = ref('')
 const musicVolume = ref(50)
 const audioElement = ref(null)
 
-// 全屏状态
-const isFullscreen = ref(false)
-
-// 切换背景音乐
-const toggleBackgroundMusic = () => {
-  backgroundMusicEnabled.value = !backgroundMusicEnabled.value
-  if (backgroundMusicEnabled.value) {
-    if (currentMusicUrl.value && audioElement.value) {
-      audioElement.value.play().catch(error => {
-        console.log('播放背景音乐失败:', error)
-        ElMessage.warning('播放背景音乐失败，请检查音频文件')
-      })
-    }
-    ElMessage.success('背景音乐已开启')
-  } else {
-    if (audioElement.value) {
-      audioElement.value.pause()
-    }
-    ElMessage.success('背景音乐已关闭')
-  }
-  // 保存设置到localStorage
-  localStorage.setItem('backgroundMusicEnabled', backgroundMusicEnabled.value.toString())
-}
-
-// 奖项等级相关的辅助函数
-const getLevelType = (level) => {
-  const types = ['success', 'warning', 'danger']
-  return types[level - 1] || 'info'
-}
-
-const getLevelText = (level) => {
-  const texts = ['特等奖', '一等奖', '二等奖', '三等奖']
-  return texts[level - 1] || `${level}等奖`
-}
-
 // router已在上方定义
 const countdownDate = ref(Date.now() + 1000 * 60 * 60 * 24)
-const isDrawing = ref(false)
-const animationId = ref(null)
 const currentAward = ref('')
 const isLoadingParticipants = ref(false)
 const loadError = ref(false)
-const currentRollingName = ref(null)
-const rollingInterval = ref(null)
-const rollingSpeed = ref(50)
 // 全屏状态
-const isFullScreen = ref(false)
 // 背景图片
 const currentBackground = ref('')
 // 从API获取参与者列表
@@ -201,7 +139,6 @@ const availableParticipants = ref([])
 
 // 老虎机滚动相关数据
 const isSlotRunning = ref(false)
-// const slotStatus = ref('点击开始按钮启动抽选')
 const namesContainer = ref(null)
 const slotAnimationId = ref(null)
 const scrollInterval = ref(null);
@@ -217,7 +154,6 @@ const currentDrawCount = ref(1)
 
 // 页面初始化
 onMounted(() => {
-  // loadBasicSettings()
   loadawards()
   loadWinners()
   loadParticipants()
@@ -237,27 +173,19 @@ onMounted(() => {
   // 全屏状态变化监听已移至BottomNavigation组件
 })
 // 加载参与者列表
-const loadParticipants = () => {
+const loadParticipants = async () => {
   isLoadingParticipants.value = true
   loadError.value = false
 
-  // 获取未中奖用户+50%的中奖用户
-  fetch('/api/participants/lottery')
-    .then(res => {
-      if (!res.ok) throw new Error('获取抽奖名单失败')
-      return res.json()
-    })
-    .then(lotteryData => {
-      participants.value = lotteryData
-      availableParticipants.value = lotteryData
-      isLoadingParticipants.value = false
-      console.log('成功获取抽奖名单:', lotteryData)
-    })
-    .catch(error => {
-      console.error('获取抽奖名单错误:', error)
-      loadError.value = true
-      isLoadingParticipants.value = false
-    })
+  try {
+    const lotteryData = await participantUtils.loadParticipants()
+    participants.value = lotteryData
+    availableParticipants.value = lotteryData
+    isLoadingParticipants.value = false
+  } catch (error) {
+    loadError.value = true
+    isLoadingParticipants.value = false
+  }
 }
 
 // 加载基础设置
@@ -320,29 +248,18 @@ const loadBasicSettings = async () => {
 }
 // 获取奖项列表
 const loadawards = async (initializeIndex = true) => {
-  console.log('开始获取奖项列表...')
   try {
-    const response = await fetch('/api/awards')
-    console.log('奖项列表响应状态:', response.status)
-    if (!response.ok) {
-      console.error('奖项列表响应异常:', response)
-      throw new Error('获取奖项列表失败')
-    }
-    const data = await response.json()
-    console.log('成功获取奖项列表:', data)
-    awards.value = data
+    const result = await awardUtils.loadAwards(initializeIndex)
+    awards.value = result.data
 
     // 只在首次加载时初始化当前奖项
-    if (initializeIndex && data.length > 0) {
+    if (initializeIndex && result.data.length > 0) {
       currentAwardIndex.value = 0
-      currentAward.value = data[0].name
-      currentDrawCount.value = data[0].draw_count || 1
+      currentAward.value = result.data[0].name
+      currentDrawCount.value = result.data[0].draw_count || 1
     }
-
-    console.log('奖项列表数据设置成功:', awards)
   } catch (error) {
     console.error('获取奖项列表错误:', error)
-    // setTimeout(() => loadawards(initializeIndex), 3000) // 3秒后自动重试
   }
 }
 
@@ -394,76 +311,52 @@ const currentAwardDescription = computed(() => {
 
 // 切换到上一个奖项
 const prevAward = () => {
-  if (awards.value.length === 0) return
-
-  currentAwardIndex.value = currentAwardIndex.value > 0
-    ? currentAwardIndex.value - 1
-    : awards.value.length - 1
-
-  // 更新当前奖项名称和抽取人数
-  const award = awards.value[currentAwardIndex.value]
-  currentAward.value = award.name
-  currentDrawCount.value = award.draw_count || 1
-
-  // ElMessage.success(`切换到: ${currentAwardName.value}`)
+  const result = awardUtils.prevAward(currentAwardIndex.value, awards.value)
+  if (result) {
+    currentAwardIndex.value = result.index
+    currentAward.value = result.name
+    currentDrawCount.value = result.drawCount
+  }
 }
 
 // 切换到下一个奖项
 const nextAward = () => {
-  if (awards.value.length === 0) return
-
-  currentAwardIndex.value = currentAwardIndex.value < awards.value.length - 1
-    ? currentAwardIndex.value + 1
-    : 0
-
-  // 更新当前奖项名称和抽取人数
-  const award = awards.value[currentAwardIndex.value]
-  currentAward.value = award.name
-  currentDrawCount.value = award.draw_count || 1
-
-  // ElMessage.success(`切换到: ${currentAwardName.value}`)
+  const result = awardUtils.nextAward(currentAwardIndex.value, awards.value)
+  if (result) {
+    currentAwardIndex.value = result.index
+    currentAward.value = result.name
+    currentDrawCount.value = result.drawCount
+  }
 }
 
 // 减少抽取人数
 const decrementDrawCount = async () => {
-  if (currentDrawCount.value > 1) {
-    currentDrawCount.value--
+  const result = await awardUtils.decrementDrawCount(currentDrawCount.value)
+  if (result.success) {
+    currentDrawCount.value = result.newCount
     await updateDrawCountToDatabase()
-    // ElMessage.success(`抽取人数已设置为: ${currentDrawCount.value}`)
   } else {
-    ElMessage.warning('抽取人数不能少于1人')
+    ElMessage.warning(result.message)
   }
 }
 
 // 增加抽取人数
 const incrementDrawCount = async () => {
   const maxCount = selectedAward.value.remaining_count || 1
-  if (currentDrawCount.value < maxCount) {
-    currentDrawCount.value++
+  const result = await awardUtils.incrementDrawCount(currentDrawCount.value, maxCount)
+  if (result.success) {
+    currentDrawCount.value = result.newCount
     await updateDrawCountToDatabase()
-    // ElMessage.success(`抽取人数已设置为: ${currentDrawCount.value}`)
   } else {
-    ElMessage.warning(`抽取人数不能超过剩余奖项数量: ${maxCount}`)
+    ElMessage.warning(result.message)
   }
 }
 
 // 更新抽取人数到数据库
 const updateDrawCountToDatabase = async () => {
   try {
-    const response = await fetch(`/api/awards/${selectedAward.value.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        draw_count: currentDrawCount.value
-      })
-    })
-
-    if (!response.ok) {
-      throw new Error('更新抽取人数失败')
-    }
-
+    await awardUtils.updateDrawCountToDatabase(selectedAward.value.id, currentDrawCount.value)
+    
     // 重新加载奖项列表以同步数据，但不重新初始化当前奖项索引
     await loadawards(false)
 
@@ -471,7 +364,6 @@ const updateDrawCountToDatabase = async () => {
     if (currentAwardIndex.value < awards.value.length) {
       const award = awards.value[currentAwardIndex.value]
       currentAward.value = award.name
-      // currentDrawCount.value 保持用户刚刚设置的值，不需要重新赋值
     }
   } catch (error) {
     console.error('更新抽取人数错误:', error)
@@ -543,33 +435,14 @@ const scrollSpeed = ref(20) // 滚动速度
 const isStopping = ref(false) // 是否正在停止
 
 // 加载中奖者列表
-const loadWinners = () => {
-  // 从API获取最后一轮的中奖者列表
-  fetch('/api/lottery/winners/latest-round')
-    .then(response => {
-      if (!response.ok) throw new Error('获取最后一轮中奖者列表失败')
-      return response.json()
-    })
-    .then(data => {
-      // 检查返回的数据结构
-      if (!Array.isArray(data)) {
-        // 如果返回的不是数组，可能包装在某个字段中
-        winners.value = Array.isArray(data.winners) ? data.winners : []
-      } else {
-        winners.value = data
-      }
-      // 确保每个winner对象都有roundId和award_name
-      winners.value = winners.value.map(winner => ({
-        ...winner,
-        roundId: winner.roundId || winner.round_id || winner.epoch || 0,
-        award_name: winner.award_name || winner.Award?.name || winner.award || '未知奖项'
-      }))
-      console.log('成功获取最后一轮中奖者列表:', winners.value)
-    })
-    .catch(error => {
-      console.error('获取最后一轮中奖者列表错误:', error)
-      ElMessage.error('获取中奖名单失败，请稍后重试')
-    })
+const loadWinners = async () => {
+  try {
+    const data = await winnerUtils.loadWinners()
+    winners.value = data
+  } catch (error) {
+    console.error('获取最后一轮中奖者列表错误:', error)
+    ElMessage.error('获取中奖名单失败，请稍后重试')
+  }
 }
 
 // 删除中奖者
@@ -582,27 +455,15 @@ const deleteWinner = async (winner) => {
       { type: 'warning' }
     )
 
-    // 删除中奖者API调用
-    console.log('删除中奖者:', winner)
-    const response = await fetch(`/api/winners/${winner.user_code}`, {
-      method: 'DELETE'
-    })
-
-    if (!response.ok) {
-      throw new Error('删除中奖者失败')
-    }
+    await winnerUtils.deleteWinner(winner.user_code)
 
     // 删除成功后刷新中奖名单
     loadWinners()
 
     // 重新加载参与者列表
-    const participantsResponse = await fetch('/api/lottery')
-    if (participantsResponse.ok) {
-      const lotteryData = await participantsResponse.json()
-      participants.value = lotteryData
-      availableParticipants.value = lotteryData
-      console.log('成功刷新参与者名单:', lotteryData)
-    }
+    const lotteryData = await participantUtils.loadParticipants()
+    participants.value = lotteryData
+    availableParticipants.value = lotteryData
 
     ElMessage.success('删除成功')
 
@@ -614,10 +475,6 @@ const deleteWinner = async (winner) => {
   }
 }
 
-// 处理奖项选择变化
-const handleAwardChange = () => {
-  // 奖项选择变化处理
-}
 const displayNames = computed(() => {
   // 复制两倍的名单数据，确保首尾相连的平滑滚动
   return [...participants.value, ...participants.value];
@@ -950,86 +807,7 @@ const handleLotteryResultWithData = async (drawnWinners, updated_awards) => {
   }
 }
 
-// 保留原有的handleLotteryResult函数作为备用
-const handleLotteryResult = async () => {
-  // 找到对应的奖项
-  const award = awards.value.find(p => p.name === currentAward.value)
-  if (!award) return
-  const awards_to_draw = [award]
 
-  try {
-    const response = await fetch('/api/lottery/stop', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        awards_to_draw: awards_to_draw,
-      })
-    });
-
-    console.log('参与者:', availableParticipants)
-    if (!response.ok) throw new Error('抽奖结果获取失败')
-
-    const resultData = await response.json()
-    const { winners: drawnWinners, updated_awards } = resultData
-
-    // 更新奖项剩余数量
-    updated_awards.forEach(updatedAward => {
-      const award = awards.value.find(a => a.id === updatedAward.id)
-      if (award) {
-        award.remaining_count = updatedAward.remaining_count
-      }
-    })
-
-    // 更新中奖者列表
-    if (drawnWinners.length > 0) {
-      winners.value = [...winners.value, ...drawnWinners.map(winner => ({
-        id: winner.participant_id,
-        name: winner.name,
-        award: awards.value.find(a => a.id === winner.award_id)?.name || '未知奖项',
-        color: getAwardColor(winner.award_id),
-        department: winner.department || ''
-      }))]
-
-      // 保存到localStorage
-      localStorage.setItem('lottery_winners', JSON.stringify(winners.value))
-
-      // 显示中奖消息
-      const winnerNames = drawnWinners.map(w => w.name).join(', ')
-      const awardNames = [...new Set(drawnWinners.map(w =>
-        awards.value.find(a => a.id === w.award_id)?.name || '未知奖项'
-      ))].join(', ')
-
-      ElMessage.success(`恭喜 ${winnerNames} 获得 ${awardNames}！`)
-    }
-
-    // 刷新中奖列表
-    loadWinners()
-
-    // 弹窗展示中奖人员信息
-    if (drawnWinners.length > 0) {
-      console.log('显示中奖弹窗', drawnWinners[0])
-      // 设置弹窗数据
-      dialogWinners.value = drawnWinners
-      // 根据中奖人数动态调整弹窗宽度
-      if (drawnWinners.length <= 2) {
-        winnerDialogWidth.value = '400px'
-      } else if (drawnWinners.length <= 4) {
-        winnerDialogWidth.value = '600px'
-      } else if (drawnWinners.length <= 6) {
-        winnerDialogWidth.value = '800px'
-      } else {
-        winnerDialogWidth.value = '1000px'
-      }
-      showWinnerDialog.value = true
-    }
-
-  } catch (error) {
-    console.error('停止抽奖或处理结果时出错:', error)
-    ElMessage.error('处理中奖结果失败')
-  }
-};
 // 辅助函数 - 根据奖项ID获取颜色
 const getAwardColor = (awardId) => {
   const award = awards.value.find(a => a.id === awardId)
@@ -1040,182 +818,21 @@ const getAwardColor = (awardId) => {
 }
 // 添加抽奖音效
 const playLotterySound = () => {
-  // 未来可以添加真实的音效实现
-  console.log('播放抽奖音效')
+  soundUtils.playLotterySound()
 }
 
 // 添加中奖音效
 const playWinnerSound = () => {
-  // 未来可以添加真实的音效实现
-  console.log('播放中奖音效')
+  soundUtils.playWinnerSound()
 }
-// 导出中奖名单
-const exportToExcel = async () => {
-  try {
-    console.log('开始导出中奖名单...');
-    const response = await fetch('/api/winners/export');
-    if (!response.ok) throw new Error('获取中奖记录失败');
 
-    // 将响应转换为blob
-    const blob = await response.blob();
 
-    // 创建下载链接
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `中奖名单_${dayjs().format('YYYYMMDD_HHmmss')}.xlsx`;
-
-    // 触发下载
-    document.body.appendChild(link);
-    link.click();
-
-    // 清理
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-
-    ElMessage.success('导出成功');
-  } catch (error) {
-    console.error('导出失败:', error);
-    ElMessage.error('导出失败，请稍后重试');
-  }
-};
-const logout = async () => {
-  try {
-    localStorage.removeItem('token');
-    ElMessage.success('已退出登录');
-    router.push('/');
-  } catch (error) {
-    console.error('退出登录失败:', error);
-  }
-};
-// 重置抽奖数据
-const resetLotteryData = async () => {
-  try {
-    // 显示确认对话框
-    await ElMessageBox.confirm(
-      '确定要重置所有中奖数据吗？此操作将清空所有中奖记录，恢复所有参与者状态，并重置奖项剩余数量。',
-      '重置确认',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    )
-
-    // 用户确认后，调用重置API
-    const response = await fetch('/api/lottery/reset', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-
-    if (!response.ok) throw new Error('重置失败')
-
-    const result = await response.json()
-
-    // 重新加载数据
-    loadawards()
-    loadWinners()
-    loadParticipants()
-
-    // 重置当前状态
-    currentRollingName.value = null
-
-    currentAward.value = ''
-
-    // 显示成功消息
-    ElMessage.success(result.message || '重置成功')
-  } catch (error) {
-    if (error === 'cancel') return
-    console.error('重置抽奖数据失败:', error)
-    ElMessage.error('重置失败，请稍后重试')
-  }
-}
 
 // 清空所有数据
-const clearAllData = async () => {
-  try {
-    // 显示确认对话框
-    await ElMessageBox.confirm(
-      '确定要清空所有数据吗？此操作将清空所有参与者列表、中奖记录，并重置奖项和轮次数据。此操作不可恢复！',
-      '清空确认',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'danger',
-      }
-    )
-
-    // 用户确认后，调用重置API
-    const response = await fetch('/api/lottery/clearAllData', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-
-    if (!response.ok) throw new Error('清空失败')
-
-    const result = await response.json()
-
-    // 重新加载数据
-    loadawards()
-    loadWinners()
-    loadParticipants()
-
-    // 重置当前状态
-    currentRollingName.value = null
-
-    currentAward.value = ''
-
-    // 显示成功消息
-    ElMessage.success('所有数据已清空')
-  } catch (error) {
-    if (error === 'cancel') return
-    console.error('清空数据失败:', error)
-    ElMessage.error('清空失败，请稍后重试')
-  }
-}
-
-// 切换全屏功能
-const toggleFullScreen = () => {
-  if (!document.fullscreenElement) {
-    // 进入全屏
-    document.documentElement.requestFullscreen().then(() => {
-      isFullScreen.value = true
-      ElMessage.success('已进入全屏模式')
-    }).catch(err => {
-      console.error('进入全屏失败:', err)
-      ElMessage.error('进入全屏失败，请检查浏览器权限')
-    })
-  } else {
-    // 退出全屏
-    document.exitFullscreen().then(() => {
-      isFullScreen.value = false
-      ElMessage.success('已退出全屏模式')
-    }).catch(err => {
-      console.error('退出全屏失败:', err)
-      ElMessage.error('退出全屏失败')
-    })
-  }
-}
 
 // 初始化背景音乐
 const initBackgroundMusic = () => {
-  if (!audioElement.value) {
-    audioElement.value = new Audio()
-    audioElement.value.loop = true
-    audioElement.value.volume = musicVolume.value / 100
-  }
-
-  if (currentMusicUrl.value) {
-    audioElement.value.src = currentMusicUrl.value
-    // 自动播放背景音乐（需要用户交互后才能播放）
-    audioElement.value.play().catch(error => {
-      console.log('背景音乐自动播放失败，需要用户交互:', error)
-    })
-  }
+  soundUtils.initBackgroundMusic(audioElement, currentMusicUrl.value, musicVolume.value)
 }
 </script>
 

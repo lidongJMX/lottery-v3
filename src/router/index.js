@@ -100,7 +100,7 @@ const routes = [
   {
     path: '/mingdan',
     name: 'Mingdan',
-    component: () => import('@/views/MemberList.vue')
+    component: () => import('@/views/MemberListLottery.vue')
   }
 ]
 
