@@ -26,20 +26,22 @@
           </div>
         </div>
         <el-footer class="lottery-footer">
-          <div class="lottory_number">
-            <div class="lottory-prev-btn" @click="prevAward" title="上一个奖项"></div>
-            <div class="active-awardname limitbox">{{ currentAwardName }}</div>
-            <div class="lottory-next-btn" @click="nextAward" title="下一个奖项"></div>
+          <div class="footer-bg">
+            <div class="lottory-number">
+              <div class="lottory-prev-btn" @click="prevAward" title="上一个奖项"></div>
+              <div class="active-awardname limitbox">{{ currentAwardName }}</div>
+              <div class="lottory-next-btn" @click="nextAward" title="下一个奖项"></div>
+            </div>
+            <div class="lottory-selectbox">
+              <img id="prize_decrement" src="/src/assets/img/reduce.png" @click="decrementDrawCount" title="减少抽取人数">
+              <input class="numbernum" :value="currentDrawCount" readonly>
+              <img id="prize_increment" src="/src/assets/img/add.png" @click="incrementDrawCount" title="增加抽取人数">
+            </div>
+            <div class="lottory-selectbtn">
+              <el-button type="primary" @click="startLottery">开始抽奖</el-button>
+            </div>
+            <div class="lottory-selectDialog" @click="showWinnerDialog = true" :disabled="isSlotRunning">中奖名单</div>
           </div>
-          <div class="lottory-selectbox">
-            <img id="prize_decrement" src="/src/assets/img/reduce.png" @click="decrementDrawCount" title="减少抽取人数">
-            <input class="numbernum" :value="currentDrawCount" readonly>
-            <img id="prize_increment" src="/src/assets/img/add.png" @click="incrementDrawCount" title="增加抽取人数">
-          </div>
-          <div class="lottory-selectbtn">
-            <el-button type="primary" @click="startLottery">开始抽奖</el-button>
-          </div>
-          <div class="lottory-selectDialog" @click="showWinnerDialog = true" :disabled="isSlotRunning"></div>
         </el-footer>
       </el-main>
     </el-container>
