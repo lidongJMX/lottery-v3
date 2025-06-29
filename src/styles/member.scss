@@ -13,14 +13,24 @@
 }
 
 .background {
-    position: absolute;
-    top: 0;
-    left: 0;
+    position: fixed;
+  top: 0;
+  left: 0;
     width: 100vw;
     height: 100vh;
-    background-image: url('../assets/img/csbg.png');
+    // background-image: url('../assets/img/csbg.png');
     background-size: cover;
     background-repeat: no-repeat;
+    .videoBg {
+        position: absolute;
+        object-fit: cover;
+        top: 0;
+        right: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: -1;
+        transition: opacity 0.3s ease;
+      }
 }
 
 .el-container {
@@ -86,22 +96,6 @@
 }
 
 
-
-ul {
-    user-select: none;
-    padding: 0;
-    margin: 0;
-    -webkit-transform-style: preserve-3d;
-    backface-visibility: hidden;
-    text-align: center;
-    min-height: 100%;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    align-content: center;
-    flex-wrap: wrap;
-    justify-content: space-evenly;
-}
 
 .lottery-content{
     width: 100vw;
@@ -172,6 +166,21 @@ ul {
             width: 100%;
             height: 100%;
             overflow: hidden;
+            
+            #three-container {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: 10;
+                
+                canvas {
+                    display: block;
+                    width: 100% !important;
+                    height: 100% !important;
+                }
+            }
         }
     }
     
@@ -244,6 +253,22 @@ ul {
     // 隐藏类
     .hidden {
         display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+    }
+    
+    // 确保lottery-footer的隐藏样式优先级
+    .lottery-footer.hidden {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+    }
+    
+    // 针对footer-bg的隐藏样式
+    .lottery-footer.hidden .footer-bg {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
     }
 }
 
@@ -265,65 +290,120 @@ ul {
 
 .lottery-footer {
     position: relative;
-    bottom: 0;
+    bottom: 15px;
     left: 0;
     width: 700px;
-    height: 116px;
+    max-height: 116px;
     text-align: center;
     display: flex;
+    overflow: hidden;
     justify-content: center;
     .footer-bg{
-        height: 116px;
-        text-align: center;
-        // background-image: url('../assets/img/bottom.png');
-        background-repeat: no-repeat;
-        background-size: contain;
+        // min-height: 116px;
         display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 0;
-        width: 100%;
+        align-items: center; // 改为顶部对齐
+        padding: 0px;
+        // width: 100%;
+        height: 100%;
+        // gap: 20px;
+        // position: relative;
         
-        .lottory-awardname {
-            position: absolute;
-            top: -10px;
-            left: 50%;
-            transform: translateX(-50%);
+        // 左侧区域：奖项切换
+        .left-section {
             display: flex;
             align-items: center;
-            gap: 10px;
+            // flex: 1;
+            height: 100%;
+        }
+        
+        // 中间区域：开始抽奖按钮
+        .center-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            // flex: 1;
+            padding: 0 20px;
+            height: 100%;
+        }
+        
+        // 右侧区域：人数调整和中奖名单
+        .right-section {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            // flex: 1;
+            // justify-content: flex-end;
+        }
+        
+        .lottory-number {
+            display: flex;
+            align-items: center;
+            gap: 2px;
             
             .lottory-prev-btn, .lottory-next-btn {
-                width: 30px;
-                height: 30px;
+                width: 40px;
+                height: 40px;
                 cursor: pointer;
-                background-size: contain;
-                background-repeat: no-repeat;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: none;
+                background: transparent;
+                transition: all 0.3s ease;
+                border-radius: 50%;
+                
+                &:hover {
+                    background: rgba(254, 202, 0, 0.1);
+                    transform: scale(1.1);
+                }
+                
+                &::before {
+                    content: '';
+                    width: 0;
+                    height: 0;
+                    border-style: solid;
+                    transition: all 0.3s ease;
+                }
+                
+                &:hover::before {
+                    transform: scale(1.2);
+                }
             }
             
             .lottory-prev-btn {
-                background-image: url('../assets/img/prev.png');
+                &::before {
+                    border-width: 8px 12px 8px 0;
+                    border-color: transparent #feca00 transparent transparent;
+                }
+                
+                &:hover::before {
+                    border-color: transparent #ff8f00 transparent transparent;
+                }
             }
             
             .lottory-next-btn {
-                background-image: url('../assets/img/next.png');
+                &::before {
+                    border-width: 8px 0 8px 12px;
+                    border-color: transparent transparent transparent #feca00;
+                }
+                
+                &:hover::before {
+                    border-color: transparent transparent transparent #ff8f00;
+                }
             }
             
             .active-awardname {
                 color: #feca00;
-                font-size: 18px;
+                font-size: 16px;
                 font-weight: bold;
-                min-width: 80px;
+                min-width: 50px;
             }
         }
         
         .lottory-drawcountbox {
-            position: absolute;
-            top: 10px;
-            left: 100px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 5px;
             
             img {
                 width: 24px;
@@ -344,13 +424,9 @@ ul {
         
         .lottory-startbtn {
             .el-button {
-                position: absolute;
-                bottom: 50px;
-                left: 50%;
-                transform: translateX(-50%);
                 background: linear-gradient(45deg, #ff6b35, #f7931e);
                 border: none;
-                border-radius: 25px;
+                border-radius: 15px;
                 padding: 10px 30px;
                 font-size: 16px;
                 font-weight: bold;
@@ -366,14 +442,10 @@ ul {
         }
         
         .lottory-selectDialog {
-            position: absolute;
-            top: 10px;
-            right: 100px;
-            // transform: translateX(-50%);
             color: #feca00;
             font-size: 14px;
             cursor: pointer;
-            padding: 8px 16px;
+            padding: 5px 16px;
             border: 1px solid #feca00;
             border-radius: 4px;
             background: rgba(254, 202, 0, 0.1);
@@ -390,3 +462,303 @@ ul {
         }
     }
 }
+.winner-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    max-width: 100%;
+    max-height: 100%;
+    display: position;
+    top: 10%;
+    left: 5%;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    font-size: 50px;
+    /* 添加背景遮罩动画 */
+    animation: fadeIn 0.3s ease-out;
+  }
+  
+  .winner-popup-box {
+    position: relative;
+    width: 1200px;
+    height: 600px;
+    padding: 0;
+    margin: 0 0;
+    color: #ffffff;
+    /* 深色文字 */
+    font-family: -apple-system, Microsoft YaHei, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji",
+      "Segoe UI Emoji", "Segoe UI Symbol";
+    text-align: center;
+    background: none;
+    border-style: solid;
+    border-width: 2.5rem;
+    /* 40px */
+    border-radius: 8px;
+    border-image-source: url("data:image/png;base64,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");
+    border-image-slice: 40 fill;
+    border-image-repeat: stretch;
+    // overflow: hidden;
+    box-sizing: border-box;
+    user-select: none;
+    transform: translateZ(0);
+    --swiper-theme-color: #007aff;
+    --swiper-navigation-size: 2.75rem;
+    box-shadow: 0 15px 35px rgba(245, 4, 4, 0.5);
+    /* 添加弹窗缩放动画 */
+    animation: popupScale 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  
+  /* 弹窗背景淡入动画 */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+  
+    to {
+      opacity: 1;
+    }
+  }
+  
+  /* 弹窗从小到大缩放动画 */
+  @keyframes popupScale {
+    0% {
+      transform: scale(0.3) translateZ(0);
+      opacity: 0;
+    }
+  
+    50% {
+      transform: scale(1.05) translateZ(0);
+    }
+  
+    100% {
+      transform: scale(1) translateZ(0);
+      opacity: 1;
+    }
+  }
+  
+  /* 为弹窗内容添加延迟动画 */
+  .winner-popup-content {
+    padding: 15px;
+    max-height: 70vh;
+    animation: contentFadeIn 0.4s ease-out 0.3s both;
+  }
+  
+  @keyframes contentFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+  
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .winner-popup-header {
+    position: absolute;
+    top: -85px;
+    left: 0;
+    right: 0;
+    height: 3.4rem;
+    z-index: 1;
+    // border-style: solid;
+    // border-width: 0.5rem; /* 40px */
+    // border-radius: 8px;
+    background-image: url("/src/assets/img/zjbg.png");
+    background-position: 50% 0;
+    // background-size: 100% 100%;
+    border-image-slice: 20 fill;
+    border-image-repeat: stretch;
+    // display: flex;
+    // justify-content: space-between;
+    // align-items: center;
+    overflow: hidden;
+    box-sizing: border-box;
+    // user-select: none;
+    // transform: translateZ(0);
+    // --swiper-theme-color: #007aff;
+    // --swiper-navigation-size: 2.75rem;
+  }
+  
+  .winner-popup-close {
+    background-image: url("/src/assets/img/zuhe.png");
+    background-position: -325px -75px;
+    border-radius: 50%;
+    color: #fff;
+    // font-size: 25px;
+    cursor: pointer;
+    padding: 0;
+    width: 60px;
+    height: 60px;
+    display: absolute;
+    // align-items: center;
+    // justify-content: center;
+    --swiper-theme-color: #007aff;
+    --swiper-navigation-size: 2.75rem;
+    font-family: -apple-system, Microsoft YaHei, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji",
+      "Segoe UI Emoji", "Segoe UI Symbol";
+    text-align: center;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+    position: absolute;
+    z-index: 811;
+    cursor: pointer;
+    top: -1.875rem;
+    right: -0.875rem;
+    // width: 3.5rem;
+    // height: 3.5rem;
+    // background-position: -10.5rem -3.5rem;
+  
+    &:hover {
+      opacity: 0.8;
+    }
+  }
+  
+  .winner-popup-content {
+    padding: 15px;
+    max-height: 70vh;
+  
+    // overflow-y: hidden;
+    .winner-popup-grid {
+      padding: 10px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 10px;
+  
+      .winner-popup-item {
+        position: relative;
+        transition: all 0.2s ease;
+        padding: 10px;
+        border-radius: 4px;
+        text-align: center;
+        border: 1px solid rgba(var(--primary-color-rgb), 0.1);
+        // background-color: #cf0808;
+        animation: itemSlideIn 0.5s ease-out both;
+  
+        &:hover {
+          border-color: var(--primary-color);
+        }
+  
+        .delete-icon {
+          position: absolute;
+          top: 5px;
+          right: 5px;
+          cursor: pointer;
+          opacity: 0;
+          transition: opacity 0.2s ease;
+          font-size: 14px;
+          background: rgba(255, 255, 255, 0.9);
+          border-radius: 50%;
+          width: 20px;
+          height: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+  
+          &:hover {
+            background: rgba(255, 255, 255, 1);
+          }
+        }
+  
+        &:hover .delete-icon {
+          opacity: 1;
+        }
+  
+        div:nth-child(1) {
+          font-size: 30px;
+          font-weight: 500;
+          margin-bottom: 4px;
+        }
+  
+        div:nth-child(2) {
+          font-size: 20px;
+          color: #e79f47;
+          margin-bottom: 8px;
+        }
+  
+        div:nth-child(3) {
+          font-size: 12px;
+          font-weight: 500;
+          padding: 0px 0px;
+          border-radius: 4px;
+          display: inline-block;
+          // background-color: rgba(var(--primary-color-rgb), 0.1);
+          color: var(--primary-color);
+        }
+  
+  
+  
+      }
+  
+      .winner-popup-item:nth-child(1) {
+        animation-delay: 0.4s;
+      }
+  
+      .winner-popup-item:nth-child(2) {
+        animation-delay: 0.5s;
+      }
+  
+      .winner-popup-item:nth-child(3) {
+        animation-delay: 0.6s;
+      }
+  
+      .winner-popup-item:nth-child(4) {
+        animation-delay: 0.7s;
+      }
+  
+      .winner-popup-item:nth-child(5) {
+        animation-delay: 0.8s;
+      }
+  
+      .winner-popup-item:nth-child(6) {
+        animation-delay: 0.9s;
+      }
+    }
+  }
+  
+  @keyframes itemSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(30px) scale(0.8);
+    }
+  
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  
+  /* 自定义滚动条样式 */
+  .winner-popup-content::-webkit-scrollbar {
+    width: 5px;
+    /* 纵向滚动条宽度 */
+    // height: 10px; /* 横向滚动条高度 */
+  }
+  
+  /* 滚动条滑块 */
+  .winner-popup-content::-webkit-scrollbar-thumb {
+    background: #888;
+    /* 滑块颜色 */
+    border-radius: 8px;
+    /* 滑块边角弧度 */
+  }
+  
+  @keyframes float {
+  
+    0%,
+    100% {
+      transform: translateY(0) rotate(0deg);
+    }
+  
+    33% {
+      transform: translateY(-8px) rotate(5deg);
+    }
+  
+    66% {
+      transform: translateY(-3px) rotate(-3deg);
+    }
+  }
