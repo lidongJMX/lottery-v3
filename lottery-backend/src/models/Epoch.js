@@ -20,4 +20,4 @@ const Epoch = sequelize.define('Epoch', {
   }
 });
 
-module.exports = Epoch; 
+module.exports = Epoch;

@@ -76,7 +76,9 @@
       </el-main>
     </el-container>
   </div>
-
+  <div class="next-epoch" @click="nextEpoch">
+    下一轮
+  </div>
   <!-- 引入底部导航栏组件 -->
   <BottomNavigation />
 

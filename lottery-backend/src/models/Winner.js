@@ -39,4 +39,4 @@ const Winner = sequelize.define('Winner', {
 Winner.belongsTo(Participant, { foreignKey: 'participant_id' });
 Winner.belongsTo(Award, { foreignKey: 'award_id' });
 
-module.exports = Winner; 
+module.exports = Winner;

@@ -52,4 +52,4 @@ const Participant = sequelize.define('Participant', {
   }
 });
 
-module.exports = Participant; 
+module.exports = Participant;

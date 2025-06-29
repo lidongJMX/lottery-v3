@@ -116,13 +116,13 @@ export const awardUtils = {
 
   /**
    * 更新抽取人数到数据库
-   * @param {Object} selectedAward - 当前选中的奖项
+   * @param {Object} id - 当前选中的奖项
    * @param {number} drawCount - 抽取人数
    * @returns {Promise<boolean>} 更新结果
    */
-  async updateDrawCountToDatabase(selectedAward, drawCount) {
+  async updateDrawCountToDatabase(id, drawCount) {
     try {
-      const response = await fetch(`/api/awards/${selectedAward.id}`, {
+      const response = await fetch(`/api/awards/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -40,6 +40,7 @@ router.post('/lottery/reset', auth, lotteryController.reset);
 router.post('/lottery/clearAllData', auth, lotteryController.clearAllData);
 
 router.get('/lottery/winners/latest-round', lotteryController.getLatestWinners);
+router.post('/lottery/next-round', lotteryController.nextRound);
 
 // 奖项路由
 router.get('/awards', awardController.getAll);
