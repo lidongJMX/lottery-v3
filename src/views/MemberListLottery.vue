@@ -113,7 +113,7 @@
                 <div class="winner-department">{{ winner.department || '未知单位' }}</div>
               </div>
             </div>
-            <div v-if="canDeleteWinners" @click="deleteWinner(winner.id || winner.participant_id)" class="delete-icon">❌
+            <div v-if="canDeleteWinners" @click="deleteWinner(winner)" class="delete-icon">❌
             </div>
             <!-- 卡片光效 -->
             <div class="card-shine"></div>
@@ -131,7 +131,7 @@ import * as THREE from 'three';
 import BottomNavigation from '../components/BottomNavigation.vue'
 import NextEpoch from '../components/NextEpoch.vue';
 import { participantUtils, awardUtils, winnerUtils } from '../utils/lotteryUtils.js'
-import { ElMessage } from 'element-plus'
+import { ElMessage,ElMessageBox } from 'element-plus'
 
 // 3D动画相关
 const threeContainer = ref(null);
@@ -850,17 +850,42 @@ const displayWinners = computed(() => {
 })
 
 // 删除中奖者
-const deleteWinner = async (winnerId) => {
+const deleteWinner = async (winner) => {
   try {
-    await winnerUtils.deleteWinner(winnerId)
-    ElMessage.success('删除中奖者成功')
-    // 重新加载中奖者列表
+    // 显示确认对话框
+    await ElMessageBox.confirm(
+      `确定要删除 ${winner.name} 的 ${winner.award_name} 中奖记录吗？此操作将恢复该参与者状态`,
+      '警告',
+      { type: 'warning' }
+    )
+
+    // 删除中奖者API调用
+    const response = await fetch(`/api/winners/${winner.user_code}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: '删除失败' }))
+      throw new Error(errorData.message || '删除中奖者失败')
+    }
+
+    const result = await response.json()
+    ElMessage.success(result.message || '删除成功')
+    
+    // 刷新中奖者列表
     await loadWinners()
-    // 重新加载参与者列表
-    await loadParticipants()
+    
+    return true
+        
   } catch (error) {
     console.error('删除中奖者错误:', error)
-    ElMessage.error('删除中奖者失败，请稍后重试')
+    if (error.name !== 'cancel') {
+      ElMessage.error('删除失败: ' + error.message)
+    }
+    return false
   }
 }
 
